@@ -1,0 +1,52 @@
+{
+    "name": "chuoke/laravel-blog",
+    "description": "A standalone blog package for Laravel, providing markdown capabilities, categories, tags, and customizable views.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Chuoke",
+            "email": "chuoke@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "league/commonmark": "^2.4",
+        "hidehalo/nanoid-php": "^1.1"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^10.0",
+        "pestphp/pest": "^2.36",
+        "pestphp/pest-plugin-laravel": "^2.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Chuoke\\Blog\\": "src/",
+            "Chuoke\\Blog\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Chuoke\\Blog\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Chuoke\\Blog\\Providers\\BlogServiceProvider"
+            ],
+            "aliases": {
+                "Blog": "Chuoke\\Blog\\Facades\\Blog"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

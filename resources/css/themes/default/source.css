@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@plugin "daisyui" {
+  themes: all;
+}
+
+/*
+ * "editorial" — the default theme's own DaisyUI palette. Warm, cream-tinted
+ * neutrals (paper) paired with a cooler indigo accent (ink) for contrast.
+ * Any other DaisyUI theme name still works via config('blog.color_theme') —
+ * this is just a considered default rather than the generic 'light' theme.
+ */
+@plugin "daisyui/theme" {
+  name: "editorial";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(98.5% 0.004 80);
+  --color-base-200: oklch(96.3% 0.006 80);
+  --color-base-300: oklch(91.5% 0.009 80);
+  --color-base-content: oklch(22% 0.02 275);
+
+  --color-primary: oklch(45% 0.14 275);
+  --color-primary-content: oklch(97% 0.012 275);
+
+  --color-secondary: oklch(72% 0.15 55);
+  --color-secondary-content: oklch(24% 0.03 55);
+
+  --color-accent: oklch(64% 0.16 35);
+  --color-accent-content: oklch(97% 0.012 35);
+
+  --color-neutral: oklch(25% 0.02 275);
+  --color-neutral-content: oklch(96% 0.01 275);
+
+  --color-info: oklch(60% 0.14 230);
+  --color-info-content: oklch(97% 0.01 230);
+  --color-success: oklch(62% 0.13 155);
+  --color-success-content: oklch(97% 0.01 155);
+  --color-warning: oklch(80% 0.15 85);
+  --color-warning-content: oklch(24% 0.03 85);
+  --color-error: oklch(58% 0.2 25);
+  --color-error-content: oklch(97% 0.01 25);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@source "../../../views/themes/default/**/*.blade.php";
+
+@theme {
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-content);
+  }
+}
+
+@layer utilities {
+  /* Staggered entrance: opacity + slight rise + blur-out, applied via
+     inline animation-delay for each item. Compositor-friendly (transform,
+     opacity, filter only). */
+  @keyframes blog-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: blog-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up {
+      animation: none;
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+}

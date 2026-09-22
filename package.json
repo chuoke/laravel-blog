@@ -1,0 +1,14 @@
+{
+  "name": "chuoke/laravel-blog-theme-build",
+  "private": true,
+  "description": "Dev-only build for the package's precompiled default theme CSS. Not required by consumers of the package; the compiled output is committed to resources/css/blog/.",
+  "scripts": {
+    "build:theme": "tailwindcss -i ./resources/css/themes/default/source.css -o ./resources/css/blog/theme-default.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.14",
+    "@tailwindcss/typography": "^0.5.19",
+    "daisyui": "^5.1.27",
+    "tailwindcss": "^4.1.14"
+  }
+}

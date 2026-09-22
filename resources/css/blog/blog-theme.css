@@ -1,0 +1,53 @@
+/* Tailwind CSS v4 Theme Configuration (DaisyUI Compatible Pattern) */
+
+@theme {
+  /* 
+   * Semantic Color Palette following the DaisyUI naming convention.
+   * If the host application installs DaisyUI, these utilities (base-100, primary, etc.) 
+   * will be seamlessly taken over by DaisyUI's dynamic OKLCH theme engine.
+   * If DaisyUI is NOT installed, these fallback colors ensure the blog still looks stunning.
+   */
+   
+  /* Base (Backgrounds) */
+  --color-base-100: #ffffff;
+  --color-base-200: #f8fafc; /* slate-50 */
+  --color-base-300: #f1f5f9; /* slate-100 */
+  --color-base-content: #0f172a; /* slate-900 */
+
+  /* Primary */
+  --color-primary: #4f46e5; /* indigo-600 */
+  --color-primary-content: #ffffff;
+
+  /* Secondary & Accent (Optional, for future use) */
+  --color-secondary: #db2777; /* pink-600 */
+  --color-secondary-content: #ffffff;
+  --color-accent: #059669; /* emerald-600 */
+  --color-accent-content: #ffffff;
+
+  /* Neutral (Darker backgrounds/text) */
+  --color-neutral: #1e293b; /* slate-800 */
+  --color-neutral-content: #f8fafc; /* slate-50 */
+
+  /* Info / Success / Warning / Error */
+  --color-info: #3b82f6; /* blue-500 */
+  --color-info-content: #ffffff;
+  --color-success: #10b981; /* emerald-500 */
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b; /* amber-500 */
+  --color-warning-content: #ffffff;
+  --color-error: #f43f5e; /* rose-500 */
+  --color-error-content: #ffffff;
+}
+
+@layer base {
+  /* Basic Dark Mode Fallback if DaisyUI is not used */
+  .dark {
+    --color-base-100: #0f172a; /* slate-900 */
+    --color-base-200: #020617; /* slate-950 */
+    --color-base-300: #1e293b; /* slate-800 */
+    --color-base-content: #f8fafc; /* slate-50 */
+    --color-primary: #6366f1; /* indigo-500 */
+    --color-neutral: #f8fafc;
+    --color-neutral-content: #0f172a;
+  }
+}
