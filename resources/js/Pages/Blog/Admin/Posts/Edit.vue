@@ -10,6 +10,7 @@
                 <div class="flex items-center gap-3">
                     <h1 class="text-3xl font-extrabold tracking-tight">{{ t('blogAdmin.editPost') }}</h1>
                     <span v-if="!post.is_translation" class="badge badge-outline mt-1">{{ t('blogAdmin.originalInLanguage', { language: post.language_label }) }}</span>
+                    <span v-else class="badge badge-primary badge-outline mt-1">{{ t('blogAdmin.editingTranslationInLanguage', { language: post.language_label }) }}</span>
                 </div>
             </div>
             <div class="flex items-center gap-3">
