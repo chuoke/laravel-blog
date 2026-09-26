@@ -23,7 +23,7 @@ A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admi
 ## Installation
 
 ```bash
-composer require chuoke/laravel-blog:^1.0
+composer require chuoke/laravel-blog
 ```
 
 The package auto-discovers its service provider. Then run:
