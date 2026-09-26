@@ -1,4 +1,4 @@
-export const blogAdminMessages = {
+const messages = {
     en: {
         blogAdmin: {
             name: 'Blog Admin',
@@ -223,4 +223,9 @@ export const blogAdminMessages = {
             deleteTagConfirm: '确定删除这个标签吗？它将从所有关联文章中移除。',
         },
     },
+};
+
+export const blogAdminMessages: Record<string, typeof messages.en> = {
+    ...messages,
+    zh: messages['zh-CN'],
 };
