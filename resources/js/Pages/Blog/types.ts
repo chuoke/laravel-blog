@@ -25,6 +25,7 @@ export interface Post {
     status: string;
     language: string;
     language_label: string;
+    is_translation: boolean;
     is_pinned: boolean;
     view_count: number;
     published_at: string | null;

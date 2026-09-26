@@ -35,13 +35,13 @@ class PostCreate
             'language' => $data->language,
         ]);
 
-        if (! empty($data->tagIds)) {
-            $post->tags()->sync($data->tagIds);
-        }
-
         // If this is the original post, set its article_id to its own id
         if ($post->article_id === null) {
             $post->update(['article_id' => $post->id]);
+        }
+
+        if (! empty($data->tagIds)) {
+            $post->tags()->sync($data->tagIds);
         }
 
         Blog::forgetFrontCache();

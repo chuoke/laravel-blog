@@ -52,7 +52,7 @@ class Post extends Model
         'is_pinned' => 'boolean',
     ];
 
-    protected $appends = ['language_label'];
+    protected $appends = ['language_label', 'is_translation'];
 
     public function languageOption(): BlogLocale
     {
@@ -83,6 +83,11 @@ class Post extends Model
     public function isTranslation(): bool
     {
         return $this->article_id !== null && $this->article_id !== $this->id;
+    }
+
+    public function getIsTranslationAttribute(): bool
+    {
+        return $this->isTranslation();
     }
 
     /**

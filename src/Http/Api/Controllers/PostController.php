@@ -2,17 +2,18 @@
 
 namespace Chuoke\Blog\Http\Api\Controllers;
 
-use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
-use Chuoke\Blog\Models\Post;
+use Chuoke\Blog\Actions\PostCreate;
+use Chuoke\Blog\Actions\PostDelete;
 use Chuoke\Blog\Actions\PostGet;
 use Chuoke\Blog\Actions\PostList;
-use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Actions\PostUpdate;
-use Chuoke\Blog\Actions\PostDelete;
 use Chuoke\Blog\Dtos\PostCreateData;
-use Chuoke\Blog\Dtos\PostUpdateData;
 use Chuoke\Blog\Dtos\PostListData;
+use Chuoke\Blog\Dtos\PostUpdateData;
+use Chuoke\Blog\Models\Post;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
@@ -25,6 +26,7 @@ class PostController extends Controller
             status: $request->get('status'),
             language: $request->get('language'),
         );
+
         return $action->execute($data);
     }
 
@@ -63,7 +65,17 @@ class PostController extends Controller
     public function update(Request $request, Post $post, PostUpdate $action)
     {
         $validated = $request->validate([
-            'language' => 'nullable|string|max:10',
+            'language' => $post->isTranslation()
+                ? ['nullable']
+                : [
+                    'nullable',
+                    'string',
+                    'max:10',
+                    Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English']))),
+                    Rule::unique('blog_posts', 'language')
+                        ->where('article_id', $post->article_id)
+                        ->ignore($post->id),
+                ],
         ]);
 
         $data = new PostUpdateData(
@@ -73,7 +85,7 @@ class PostController extends Controller
             categoryId: $request->input('category_id'),
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
-            language: $validated['language'] ?? null,
+            language: $post->isTranslation() ? null : ($validated['language'] ?? null),
         );
 
         $post = $action->execute($post, $data);
@@ -84,6 +96,7 @@ class PostController extends Controller
     public function destroy(Post $post, PostDelete $action)
     {
         $action->execute($post);
+
         return response()->noContent();
     }
 }

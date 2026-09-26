@@ -9,7 +9,9 @@ class PostDelete
 {
     public function execute(Post $post): ?bool
     {
-        $deleted = $post->delete();
+        $deleted = $post->isOriginal()
+            ? $post->siblings()->delete()
+            : $post->delete();
 
         Blog::forgetFrontCache();
 

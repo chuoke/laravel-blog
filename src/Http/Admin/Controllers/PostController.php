@@ -2,19 +2,24 @@
 
 namespace Chuoke\Blog\Http\Admin\Controllers;
 
-use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Chuoke\Blog\Models\Post;
-use Chuoke\Blog\Actions\PostList;
-use Chuoke\Blog\Actions\PostGet;
 use Chuoke\Blog\Actions\PostCreate;
-use Chuoke\Blog\Actions\PostUpdate;
 use Chuoke\Blog\Actions\PostDelete;
+use Chuoke\Blog\Actions\PostGet;
+use Chuoke\Blog\Actions\PostList;
 use Chuoke\Blog\Actions\PostTogglePin;
+use Chuoke\Blog\Actions\PostUpdate;
 use Chuoke\Blog\Dtos\PostCreateData;
-use Chuoke\Blog\Dtos\PostUpdateData;
 use Chuoke\Blog\Dtos\PostListData;
+use Chuoke\Blog\Dtos\PostUpdateData;
+use Chuoke\Blog\Models\Category;
+use Chuoke\Blog\Models\Post;
+use Chuoke\Blog\Models\Tag;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class PostController extends Controller
 {
@@ -30,7 +35,7 @@ class PostController extends Controller
             pinnedOnly: $request->boolean('pinned_only'),
             sortBy: $request->get('sort_by', 'id'),
         );
-        
+
         $posts = $action->execute($data);
 
         return Inertia::render('Blog/Admin/Posts/Index', [
@@ -43,8 +48,8 @@ class PostController extends Controller
     public function create()
     {
         return Inertia::render('Blog/Admin/Posts/Create', [
-            'categories' => \Chuoke\Blog\Models\Category::select('id', 'name')->get(),
-            'tags' => \Chuoke\Blog\Models\Tag::select('id', 'name')->get(),
+            'categories' => Category::select('id', 'name')->get(),
+            'tags' => Tag::select('id', 'name')->get(),
             'locales' => config('blog.supported_locales', ['en' => 'English']),
         ]);
     }
@@ -56,7 +61,7 @@ class PostController extends Controller
             'content' => 'required|string',
             'summary' => 'nullable|string',
             'status' => 'nullable|string|in:draft,published',
-            'language' => 'nullable|string|max:10',
+            'language' => ['nullable', 'string', 'max:10', Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English'])))],
         ]);
 
         $status = $validated['status'] ?? 'draft';
@@ -83,16 +88,58 @@ class PostController extends Controller
     {
         return Inertia::render('Blog/Admin/Posts/Edit', [
             'post' => $action->execute($post),
-            'categories' => \Chuoke\Blog\Models\Category::select('id', 'name')->get(),
-            'tags' => \Chuoke\Blog\Models\Tag::select('id', 'name')->get(),
+            'categories' => Category::select('id', 'name')->get(),
+            'tags' => Tag::select('id', 'name')->get(),
             'locales' => config('blog.supported_locales', ['en' => 'English']),
+            'translations' => $post->siblings()->select('id', 'language')->get(),
         ]);
+    }
+
+    public function createTranslation(Post $post, string $language, PostCreate $action)
+    {
+        $validated = Validator::validate(['language' => $language], [
+            'language' => ['required', 'string', Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English'])))],
+        ]);
+
+        $translation = DB::transaction(function () use ($post, $validated, $action): Post {
+            $original = Post::query()->lockForUpdate()->findOrFail($post->article_id);
+            $existing = $original->siblings()->where('language', $validated['language'])->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            return $action->execute(new PostCreateData(
+                title: $original->title,
+                content: $original->content,
+                authorId: request()->user()->getKey(),
+                summary: $original->summary,
+                categoryId: $original->category_id,
+                tagIds: $original->tags->pluck('id')->all(),
+                articleId: $original->article_id,
+                coverImageId: $original->cover_image_id,
+                sourceType: 'translated',
+                language: $validated['language'],
+            ));
+        });
+
+        return redirect()->route('blog.admin.posts.edit', $translation->getKey());
     }
 
     public function update(Request $request, Post $post, PostUpdate $action)
     {
         $validated = $request->validate([
-            'language' => 'nullable|string|max:10',
+            'language' => $post->isTranslation()
+                ? ['nullable']
+                : [
+                    'nullable',
+                    'string',
+                    'max:10',
+                    Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English']))),
+                    Rule::unique('blog_posts', 'language')
+                        ->where('article_id', $post->article_id)
+                        ->ignore($post->id),
+                ],
         ]);
 
         $data = new PostUpdateData(
@@ -102,17 +149,18 @@ class PostController extends Controller
             categoryId: $request->input('category_id'),
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
-            language: $validated['language'] ?? null,
+            language: $post->isTranslation() ? null : ($validated['language'] ?? null),
         );
 
         $action->execute($post, $data);
 
-        return redirect()->route('blog.admin.posts.edit', $post)->with('success', 'Post updated successfully.');
+        return redirect()->route('blog.admin.posts.edit', $post->getKey())->with('success', 'Post updated successfully.');
     }
 
     public function destroy(Post $post, PostDelete $action)
     {
         $action->execute($post);
+
         return redirect()->route('blog.admin.posts.index')->with('success', 'Post deleted successfully.');
     }
 
