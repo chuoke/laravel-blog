@@ -97,7 +97,7 @@
                             <select v-model="form.category_id" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
                                 <option :value="null">{{ t('blogAdmin.uncategorized') }}</option>
                                 <option v-for="category in categories" :key="category.id" :value="category.id">
-                                    {{ category.name[form.language] || Object.values(category.name)[0] }}
+                                    {{ category.name[taxonomyLocale] || Object.values(category.name)[0] }}
                                 </option>
                             </select>
                         </div>
@@ -192,7 +192,9 @@ const editorTheme = computed(() => {
     return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 });
 
-const tagLabel = (tag: Tag): string => tag.name[form.language] || Object.values(tag.name)[0];
+const taxonomyLocale = computed(() => locale.value.replace('-', '_'));
+
+const tagLabel = (tag: Tag): string => tag.name[taxonomyLocale.value] || Object.values(tag.name)[0];
 
 const selectedTags = computed(() => props.tags.filter((tag) => form.tag_ids.includes(tag.id)));
 
