@@ -20,6 +20,29 @@
             </div>
         </header>
 
+        <section class="mb-6 rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-labelledby="translations-heading">
+            <div class="mb-4">
+                <h2 id="translations-heading" class="text-sm font-bold text-base-content">{{ t('blogAdmin.translations') }}</h2>
+                <p class="mt-1 text-xs leading-5 text-base-content/60">
+                    {{ post.is_translation ? t('blogAdmin.translationFromLanguage', { language: originalLanguageLabel }) : t('blogAdmin.translationHelp') }}
+                </p>
+                <p v-if="form.isDirty" class="mt-2 text-xs font-medium text-warning">{{ t('blogAdmin.saveBeforeCreatingTranslation') }}</p>
+            </div>
+
+            <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <template v-for="([code, label]) in translationOptions" :key="code">
+                    <Link v-if="translation(code)" :href="adminUrl(`posts/${translation(code)?.id}/edit`)" class="flex min-h-10 items-center justify-between rounded-lg bg-base-200 px-3 text-sm font-medium transition-colors [@media(hover:hover)]:hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98]">
+                        <span>{{ label }}</span>
+                        <span class="text-xs text-base-content/60">{{ t('blogAdmin.edit') }}</span>
+                    </Link>
+                    <button v-else type="button" class="flex min-h-10 w-full items-center justify-between rounded-lg border border-dashed border-base-300 px-3 text-left text-sm font-medium text-primary transition-colors [@media(hover:hover)]:hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98] disabled:cursor-wait disabled:opacity-60" :disabled="form.processing || form.isDirty" @click="createTranslation(code)">
+                        <span>{{ label }}</span>
+                        <span class="text-xs">{{ t('blogAdmin.createTranslation') }}</span>
+                    </button>
+                </template>
+            </div>
+        </section>
+
         <div v-if="saved" role="status" class="mb-6 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success">
             {{ t('blogAdmin.postSaved') }}
         </div>
@@ -57,7 +80,7 @@
             <!-- Settings Sidebar (Right) -->
             <div class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
                 <!-- Summary Card -->
-                <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
+                <div v-if="!post.is_translation" class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
                     <label class="block text-sm font-bold text-base-content mb-2">{{ t('blogAdmin.summaryOptional') }}</label>
                     <textarea v-model="form.summary" rows="5" :placeholder="t('blogAdmin.summaryPlaceholder')" class="w-full bg-base-200 border-0 rounded-xl px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all resize-none"></textarea>
                 </div>
@@ -95,7 +118,7 @@
                     </h3>
                     
                     <div class="space-y-4">
-                        <div v-if="!post.is_translation">
+                        <div>
                             <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.originalLanguage') }}</label>
                             <select v-model="form.language" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
                                 <option v-for="(label, code) in locales" :key="code" :value="code">{{ label }}</option>
@@ -137,26 +160,6 @@
                     </div>
                 </div>
 
-                <section class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-labelledby="translations-heading">
-                    <div class="mb-4">
-                        <h3 id="translations-heading" class="text-sm font-bold text-base-content">{{ t('blogAdmin.translations') }}</h3>
-                        <p class="mt-1 text-xs leading-5 text-base-content/60">{{ t('blogAdmin.translationHelp') }}</p>
-                        <p v-if="form.isDirty" class="mt-2 text-xs font-medium text-warning">{{ t('blogAdmin.saveBeforeCreatingTranslation') }}</p>
-                    </div>
-
-                    <div class="space-y-2">
-                        <template v-for="([code, label]) in translationOptions" :key="code">
-                            <Link v-if="translation(code)" :href="adminUrl(`posts/${translation(code)?.id}/edit`)" class="flex min-h-10 items-center justify-between rounded-lg bg-base-200 px-3 text-sm font-medium transition-colors [@media(hover:hover)]:hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98]">
-                                <span>{{ label }}</span>
-                                <span class="text-xs text-base-content/60">{{ t('blogAdmin.edit') }}</span>
-                            </Link>
-                            <button v-else type="button" class="flex min-h-10 w-full items-center justify-between rounded-lg border border-dashed border-base-300 px-3 text-left text-sm font-medium text-primary transition-colors [@media(hover:hover)]:hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98] disabled:cursor-wait disabled:opacity-60" :disabled="form.processing || form.isDirty" @click="createTranslation(code)">
-                                <span>{{ label }}</span>
-                                <span class="text-xs">{{ t('blogAdmin.createTranslation') }}</span>
-                            </button>
-                        </template>
-                    </div>
-                </section>
             </div>
         </div>
     </div>
@@ -189,12 +192,14 @@ const props = withDefaults(defineProps<{
     tags: Tag[];
     locales: Record<string, string>;
     translations: Array<{ id: number; language: string }>;
+    originalLanguage: string;
 }>(), { translations: () => [] });
 
 const { adminUrl, apiUrl } = useBlogRoutes();
 const translation = (language: string) => (props.translations ?? []).find((item) => item.language === language);
 const createTranslation = (language: string) => form.post(adminUrl(`posts/${props.post.id}/translations/${language}`));
 const translationOptions = computed(() => Object.entries(props.locales).filter(([language]) => language !== props.post.language));
+const originalLanguageLabel = computed(() => props.locales[props.originalLanguage] ?? props.originalLanguage);
 
 const form = useForm({
     title: props.post.title || '',

@@ -21,6 +21,10 @@ class PostUpdate
             'source_url' => $data->sourceUrl,
         ], fn ($value) => $value !== null);
 
+        if ($post->isTranslation()) {
+            unset($updateAttributes['category_id']);
+        }
+
         if (! empty($updateAttributes)) {
             $post->update($updateAttributes);
 
@@ -36,7 +40,7 @@ class PostUpdate
             }
         }
 
-        if ($data->tagIds !== null) {
+        if ($data->tagIds !== null && ! $post->isTranslation()) {
             $post->tags()->sync($data->tagIds);
         }
 

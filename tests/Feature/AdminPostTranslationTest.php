@@ -131,6 +131,49 @@ it('does not allow the API to change a translation language', function () {
     expect($translation->fresh()->language)->toBe('zh');
 });
 
+it('only allows the original to maintain the article taxonomy', function () {
+    $firstCategory = Category::create(['name' => ['en' => 'News'], 'slug' => 'news']);
+    $secondCategory = Category::create(['name' => ['en' => 'Guides'], 'slug' => 'guides']);
+    $firstTag = Tag::create(['name' => ['en' => 'Laravel'], 'slug' => 'laravel']);
+    $secondTag = Tag::create(['name' => ['en' => 'Vue'], 'slug' => 'vue']);
+    $original = (new PostCreate())->execute(new PostCreateData(
+        title: 'Original post',
+        content: 'Original content',
+        authorId: 1,
+        categoryId: $firstCategory->id,
+        tagIds: [$firstTag->id],
+        language: 'en',
+    ));
+    $translation = (new PostCreate())->execute(new PostCreateData(
+        title: 'Translated post',
+        content: 'Translated content',
+        authorId: 1,
+        categoryId: $firstCategory->id,
+        tagIds: [$firstTag->id],
+        language: 'zh',
+        articleId: $original->article_id,
+    ));
+
+    $this->put(route('blog.admin.posts.update', $original->getKey()), [
+        'category_id' => $secondCategory->id,
+        'tag_ids' => [$secondTag->id],
+    ])->assertRedirect();
+
+    expect($translation->fresh())
+        ->category_id->toBe($secondCategory->id)
+        ->tags->modelKeys()->toBe([$secondTag->id]);
+
+    $this->put(route('blog.admin.posts.update', $translation->getKey()), [
+        'category_id' => $firstCategory->id,
+        'tag_ids' => [$firstTag->id],
+    ])->assertRedirect();
+
+    expect($original->fresh())
+        ->category_id->toBe($secondCategory->id)
+        ->tags->modelKeys()->toBe([$secondTag->id]);
+    expect($translation->fresh()->category_id)->toBe($secondCategory->id);
+});
+
 it('soft deletes the article group when its original post is deleted', function () {
     $original = (new PostCreate())->execute(new PostCreateData(
         title: 'Original post',
@@ -172,4 +215,8 @@ it('shares article translations with the post edit page', function () {
         ->assertJsonPath('component', 'Blog/Admin/Posts/Edit')
         ->assertJsonPath('props.post.is_translation', false)
         ->assertJsonFragment(['id' => $translation->id, 'language' => 'zh']);
+
+    $this->get(route('blog.admin.posts.edit', $translation->getKey()), ['X-Inertia' => 'true'])
+        ->assertOk()
+        ->assertJsonPath('props.originalLanguage', 'en');
 });

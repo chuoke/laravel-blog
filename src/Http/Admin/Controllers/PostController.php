@@ -92,6 +92,7 @@ class PostController extends Controller
             'tags' => Tag::select('id', 'name')->get(),
             'locales' => config('blog.supported_locales', ['en' => 'English']),
             'translations' => $post->siblings()->select('id', 'language')->get(),
+            'originalLanguage' => $post->isTranslation() ? $post->original()->value('language') : $post->language,
         ]);
     }
 
