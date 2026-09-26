@@ -3,8 +3,9 @@
 namespace Chuoke\Blog\Actions;
 
 use Chuoke\Blog\Dtos\PostCreateData;
-use Illuminate\Support\Str;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Post;
+use Illuminate\Support\Str;
 
 class PostCreate
 {
@@ -14,7 +15,7 @@ class PostCreate
         $uid = app(UidGenerate::class)->execute();
 
         // 2. Generate slug (basic fallback if not provided, you might want a slug in DTO later)
-        $slug = Str::slug($data->title) . '-' . strtolower(Str::random(5));
+        $slug = Str::slug($data->title).'-'.strtolower(Str::random(5));
 
         $post = Post::create([
             'uid' => $uid,
@@ -34,7 +35,7 @@ class PostCreate
             'language' => $data->language,
         ]);
 
-        if (!empty($data->tagIds)) {
+        if (! empty($data->tagIds)) {
             $post->tags()->sync($data->tagIds);
         }
 
@@ -42,6 +43,8 @@ class PostCreate
         if ($post->article_id === null) {
             $post->update(['article_id' => $post->id]);
         }
+
+        Blog::forgetFrontCache();
 
         return $post;
     }

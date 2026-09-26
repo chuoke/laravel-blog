@@ -3,7 +3,7 @@
 {{-- Categories --}}
 <div>
     <div class="flex items-center gap-3 mb-4 border-b-2 border-accent pb-2">
-        <h3 class="text-sm font-extrabold uppercase tracking-wider">Categories</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-wider">{{ __('blog::ui.categories') }}</h3>
     </div>
     <ul class="space-y-2">
         @foreach(\Chuoke\Blog\Facades\Blog::categoriesWithCount() as $cat)
@@ -20,7 +20,7 @@
 {{-- Tags --}}
 <div>
     <div class="flex items-center gap-3 mb-4 border-b-2 border-accent pb-2">
-        <h3 class="text-sm font-extrabold uppercase tracking-wider">Tags</h3>
+        <h3 class="text-sm font-extrabold uppercase tracking-wider">{{ __('blog::ui.tags') }}</h3>
     </div>
     <div class="flex flex-wrap gap-2">
         @foreach(\Chuoke\Blog\Facades\Blog::tagsWithCount() as $t)

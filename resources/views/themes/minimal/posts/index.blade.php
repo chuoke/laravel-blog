@@ -3,24 +3,24 @@
     $posts = Blog::paginatedPosts(['search' => request('search')], 15);
 @endphp
 
-@section('title', (request('search') ? 'Search: ' . request('search') . ' — ' : 'Archive — ') . config('app.name'))
+@section('title', request('search') ? __('blog::ui.search_title', ['search' => request('search')]) : __('blog::ui.archive'))
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
     @if(request('search'))
         <div class="mb-10">
-            <p class="text-xs font-semibold text-base-content/40 mb-1">Results for</p>
+            <p class="text-xs font-semibold text-base-content/40 mb-1">{{ __('blog::ui.results_for') }}</p>
             <h1 class="font-serif text-3xl font-extrabold">"{{ request('search') }}"</h1>
         </div>
     @else
-        <h1 class="font-serif text-3xl font-extrabold mb-10">Archive</h1>
+        <h1 class="font-serif text-3xl font-extrabold mb-10">{{ __('blog::ui.archive') }}</h1>
     @endif
 
     <div class="space-y-8">
         @forelse($posts as $post)
             @include('blog::partials.post-card', ['post' => $post])
         @empty
-            <p class="text-base-content/40 text-center py-16">No posts found.</p>
+            <p class="text-base-content/40 text-center py-16">{{ __('blog::ui.no_posts_found') }}</p>
         @endforelse
     </div>
 

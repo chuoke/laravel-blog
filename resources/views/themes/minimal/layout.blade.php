@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', config('app.name', 'Blog'))</title>
+    @php
+        $__blogTitle = trim(View::yieldContent('title'));
+        $pageTitle = $__blogTitle !== '' ? $__blogTitle.' — '.config('app.name', 'Blog') : config('app.name', 'Blog');
+    @endphp
+    <title>{{ $pageTitle }}</title>
     <meta name="description" content="@yield('meta_description', '')">
     <link rel="canonical" href="@yield('canonical', request()->url())">
-    <meta property="og:title" content="@yield('title', config('app.name'))">
+    <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description" content="@yield('meta_description', '')">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ request()->url() }}">
@@ -31,10 +35,10 @@
         <div class="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
             <a href="{{ route('blog.home') }}" class="font-serif font-extrabold text-xl">{{ config('app.name', 'Blog') }}</a>
             <nav class="flex items-center gap-5 text-sm text-base-content/60">
-                <a href="{{ route('blog.home') }}" class="hover:text-primary transition-colors">Home</a>
-                <a href="{{ route('blog.posts.index') }}" class="hover:text-primary transition-colors">Archive</a>
+                <a href="{{ route('blog.home') }}" class="hover:text-primary transition-colors">{{ __('blog::ui.home') }}</a>
+                <a href="{{ route('blog.posts.index') }}" class="hover:text-primary transition-colors">{{ __('blog::ui.archive') }}</a>
                 <form action="{{ route('blog.posts.index') }}" method="GET" class="hidden sm:block">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search"
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('blog::ui.search') }}"
                         class="text-sm border-b border-base-300 bg-transparent focus:outline-none focus:border-primary w-28 focus:w-40 transition-all duration-300 py-1 placeholder-base-content/40">
                 </form>
             </nav>

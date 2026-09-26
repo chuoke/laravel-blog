@@ -5,7 +5,7 @@
     $latestPosts = Blog::latestPosts(8);
 @endphp
 
-@section('title', config('app.name') . ' Blog')
+@section('title', config('app.name'))
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
@@ -13,16 +13,16 @@
     @if($pinnedPosts->isNotEmpty())
     <section class="mb-16">
         @foreach($pinnedPosts as $pinned)
-            <a href="{{ route('blog.posts.show', $pinned->slug) }}" class="group block">
+            <a href="{{ route('blog.posts.show', $pinned) }}" class="group block">
                 @if($pinned->coverImage)
                     <div class="aspect-[2/1] rounded-lg overflow-hidden mb-6">
                         <img src="{{ $pinned->coverImage->url }}" alt="{{ $pinned->title }}" class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700">
                     </div>
                 @endif
                 <div class="flex items-center gap-2 text-xs text-base-content/40 mb-3 font-medium">
-                    <span class="text-accent font-semibold">Featured</span>
+                    <span class="text-accent font-semibold">{{ __('blog::ui.featured') }}</span>
                     <span>&mdash;</span>
-                    <span>{{ $pinned->published_at?->format('M d, Y') }}</span>
+                    <span>{{ Blog::formatDate($pinned->published_at, 'short', $pinned->language) }}</span>
                 </div>
                 <h2 class="font-serif text-3xl sm:text-4xl font-extrabold leading-tight group-hover:text-base-content/60 transition-colors">{{ $pinned->title }}</h2>
                 @if($pinned->summary)
@@ -40,7 +40,7 @@
             @forelse($latestPosts as $post)
                 @include('blog::partials.post-card', ['post' => $post])
             @empty
-                <p class="text-base-content/40 text-center py-10">No posts yet.</p>
+                <p class="text-base-content/40 text-center py-10">{{ __('blog::ui.no_posts_yet') }}</p>
             @endforelse
         </div>
 

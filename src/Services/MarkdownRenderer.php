@@ -4,6 +4,7 @@ namespace Chuoke\Blog\Services;
 
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
@@ -15,7 +16,7 @@ use Chuoke\Blog\Markdown\Embeds\BilibiliDriver;
 
 class MarkdownRenderer
 {
-    public function render(string $markdown): string
+    public function render(string $markdown, bool $withHeadingIds = false): string
     {
         // 'strip' by default: raw HTML in Markdown is a stored-XSS vector unless
         // every author is fully trusted. Only set 'blog.markdown.html_input' to
@@ -25,9 +26,22 @@ class MarkdownRenderer
             'allow_unsafe_links' => false,
         ];
 
+        if ($withHeadingIds) {
+            $config['heading_permalink'] = [
+                'min_heading_level' => 2,
+                'max_heading_level' => 3,
+                'insert' => 'none',
+                'apply_id_to_heading' => true,
+            ];
+        }
+
         // Configure the Environment with all the CommonMark parsers/renderers
         $environment = new Environment($config);
         $environment->addExtension(new CommonMarkCoreExtension());
+
+        if ($withHeadingIds) {
+            $environment->addExtension(new HeadingPermalinkExtension());
+        }
         
         // Add common extensions
         $environment->addExtension(new AutolinkExtension());

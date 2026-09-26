@@ -2,7 +2,10 @@
 
 namespace Chuoke\Blog\Providers;
 
+use Chuoke\Blog\BlogManager;
+use Chuoke\Blog\Console\Commands\InstallCommand;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class BlogServiceProvider extends ServiceProvider
 {
@@ -14,14 +17,14 @@ class BlogServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../../config/blog.php', 'blog'
         );
-        
+
         // BlogManager memoizes query results for the lifetime of the binding.
         // Use scoped() rather than singleton() so long-running processes
         // (e.g. Octane workers, queued jobs) get a fresh instance - and
         // therefore a fresh cache - for each request/job instead of leaking
         // stale data across them.
-        $this->app->scoped(\Chuoke\Blog\BlogManager::class, function ($app) {
-            return new \Chuoke\Blog\BlogManager();
+        $this->app->scoped(BlogManager::class, function ($app) {
+            return new BlogManager();
         });
 
         $this->registerActions();
@@ -32,6 +35,9 @@ class BlogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->loadTranslationsFrom(__DIR__.'/../../lang', 'blog');
+
+        $this->shareInertiaRoutes();
         $this->configurePublishing();
         $this->registerMigrations();
         $this->registerRoutes();
@@ -39,11 +45,25 @@ class BlogServiceProvider extends ServiceProvider
         $this->registerCommands();
     }
 
+    protected function shareInertiaRoutes(): void
+    {
+        if (! class_exists(Inertia::class)) {
+            return;
+        }
+
+        Inertia::share('blog.routes', function (): array {
+            return [
+                'admin' => '/'.trim(config('blog.admin_route_prefix', 'admin/blog'), '/'),
+                'api' => '/'.trim(config('blog.api_route_prefix', 'api/blog'), '/'),
+            ];
+        });
+    }
+
     protected function registerCommands(): void
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \Chuoke\Blog\Console\Commands\InstallCommand::class,
+                InstallCommand::class,
             ]);
         }
     }
@@ -95,7 +115,7 @@ class BlogServiceProvider extends ServiceProvider
      */
     protected function registerActions(): void
     {
-        // Actions will be bound here. By default they are self-bound, 
+        // Actions will be bound here. By default they are self-bound,
         // but explicit binding allows the host app to easily override them.
     }
 
@@ -110,11 +130,16 @@ class BlogServiceProvider extends ServiceProvider
             ], 'blog-config');
 
             $this->publishes([
+                __DIR__.'/../../lang' => $this->app->langPath('vendor/blog'),
+            ], 'blog-lang');
+
+            $this->publishes([
                 __DIR__.'/../../database/migrations' => database_path('migrations'),
             ], 'blog-migrations');
 
             $this->publishes([
                 __DIR__.'/../../resources/js/Pages/Blog' => resource_path('js/Pages/Blog'),
+                __DIR__.'/../../resources/js/i18n' => resource_path('js/Pages/Blog/i18n'),
                 __DIR__.'/../../resources/css/blog' => resource_path('css/blog'),
             ], 'blog-assets');
         }

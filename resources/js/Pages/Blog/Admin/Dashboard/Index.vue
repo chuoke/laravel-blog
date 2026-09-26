@@ -1,14 +1,14 @@
 <template>
-    <div class="p-6 max-w-7xl mx-auto space-y-8 pb-20">
+    <div class="p-4 md:p-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight">Dashboard</h1>
-                <p class="text-base-content/60 mt-1 font-medium">Overview of your blog's performance.</p>
+                <h1 class="text-3xl font-extrabold tracking-tight">{{ t('blogAdmin.dashboard') }}</h1>
+                <p class="text-base-content/60 mt-1 font-medium">{{ t('blogAdmin.overview') }}</p>
             </div>
-            <Link href="/admin/blog/posts/create" class="btn btn-primary shadow-sm hover:shadow-md transition-all">
+            <Link :href="adminUrl('posts/create')" class="btn btn-primary shadow-sm hover:shadow-md transition-all">
                 <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Write Post
+                {{ t('blogAdmin.writePost') }}
             </Link>
         </div>
 
@@ -21,11 +21,11 @@
                     <div class="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"></path></svg>
                     </div>
-                    <span class="badge badge-sm badge-ghost font-bold text-base-content/60">{{ stats.published_posts }} Published</span>
+                    <span class="badge badge-sm badge-ghost font-bold text-base-content/60">{{ stats.published_posts }} {{ t('blogAdmin.published') }}</span>
                 </div>
                 <div class="relative">
                     <h3 class="text-4xl font-extrabold">{{ stats.total_posts }}</h3>
-                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">Total Posts</p>
+                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">{{ t('blogAdmin.totalPosts') }}</p>
                 </div>
             </div>
 
@@ -39,7 +39,7 @@
                 </div>
                 <div class="relative">
                     <h3 class="text-4xl font-extrabold">{{ stats.total_views.toLocaleString() }}</h3>
-                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">Total Views</p>
+                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">{{ t('blogAdmin.totalViews') }}</p>
                 </div>
             </div>
 
@@ -53,7 +53,7 @@
                 </div>
                 <div class="relative">
                     <h3 class="text-4xl font-extrabold">{{ stats.draft_posts }}</h3>
-                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">Drafts</p>
+                    <p class="text-sm font-medium text-base-content/60 mt-1 uppercase tracking-wider">{{ t('blogAdmin.drafts') }}</p>
                 </div>
             </div>
 
@@ -68,12 +68,12 @@
                 <div class="relative flex items-end gap-3">
                     <div>
                         <h3 class="text-3xl font-extrabold">{{ stats.total_categories }}</h3>
-                        <p class="text-xs font-medium text-base-content/60 mt-1 uppercase tracking-wider">Categories</p>
+                        <p class="text-xs font-medium text-base-content/60 mt-1 uppercase tracking-wider">{{ t('blogAdmin.categories') }}</p>
                     </div>
                     <div class="w-px h-10 bg-base-300"></div>
                     <div>
                         <h3 class="text-3xl font-extrabold">{{ stats.total_tags }}</h3>
-                        <p class="text-xs font-medium text-base-content/60 mt-1 uppercase tracking-wider">Tags</p>
+                        <p class="text-xs font-medium text-base-content/60 mt-1 uppercase tracking-wider">{{ t('blogAdmin.tags') }}</p>
                     </div>
                 </div>
             </div>
@@ -88,14 +88,14 @@
                     <div class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     </div>
-                    <h2 class="text-lg font-bold">Trending Posts</h2>
+                    <h2 class="text-lg font-bold">{{ t('blogAdmin.trendingPosts') }}</h2>
                 </div>
                 <div class="p-0 flex-1">
                     <ul class="divide-y divide-base-200">
                         <li v-for="(post, index) in topPosts" :key="post.id" class="p-4 hover:bg-base-200/50 transition-colors flex items-center gap-4">
                             <div class="text-2xl font-black text-base-content/10 w-8 text-center">{{ index + 1 }}</div>
                             <div class="flex-1 min-w-0">
-                                <Link :href="`/admin/blog/posts/${post.id}/edit`" class="font-bold text-sm hover:text-primary transition-colors block truncate">{{ post.title }}</Link>
+                                <Link :href="adminUrl(`posts/${post.id}/edit`)" class="font-bold text-sm hover:text-primary transition-colors block truncate">{{ post.title }}</Link>
                                 <div class="text-xs text-base-content/60 mt-1 flex items-center gap-2">
                                     <span v-if="post.category" class="font-medium text-primary">{{ post.category.name[post.language] || Object.values(post.category.name)[0] }}</span>
                                     <span v-if="post.category">&bull;</span>
@@ -104,10 +104,10 @@
                             </div>
                             <div class="text-right">
                                 <div class="text-sm font-bold">{{ post.view_count.toLocaleString() }}</div>
-                                <div class="text-[10px] uppercase text-base-content/50 font-bold tracking-wider mt-0.5">Views</div>
+                                <div class="text-[10px] uppercase text-base-content/50 font-bold tracking-wider mt-0.5">{{ t('blogAdmin.views') }}</div>
                             </div>
                         </li>
-                        <li v-if="topPosts.length === 0" class="p-8 text-center text-base-content/50 font-medium">No posts available</li>
+                        <li v-if="topPosts.length === 0" class="p-8 text-center text-base-content/50 font-medium">{{ t('blogAdmin.noPostsAvailable') }}</li>
                     </ul>
                 </div>
             </div>
@@ -119,16 +119,16 @@
                         <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
-                        <h2 class="text-lg font-bold">Recent Activity</h2>
+                        <h2 class="text-lg font-bold">{{ t('blogAdmin.recentActivity') }}</h2>
                     </div>
-                    <Link href="/admin/blog/posts" class="text-xs font-bold text-primary hover:underline">View All</Link>
+                    <Link :href="adminUrl('posts')" class="text-xs font-bold text-primary hover:underline">{{ t('blogAdmin.viewAll') }}</Link>
                 </div>
                 <div class="p-0 flex-1">
                     <ul class="divide-y divide-base-200">
                         <li v-for="post in recentPosts" :key="post.id" class="p-4 hover:bg-base-200/50 transition-colors flex items-center gap-4">
                             <div class="w-2 h-2 rounded-full" :class="post.status === 'published' ? 'bg-success' : 'bg-warning'"></div>
                             <div class="flex-1 min-w-0">
-                                <Link :href="`/admin/blog/posts/${post.id}/edit`" class="font-bold text-sm hover:text-primary transition-colors block truncate">{{ post.title }}</Link>
+                                <Link :href="adminUrl(`posts/${post.id}/edit`)" class="font-bold text-sm hover:text-primary transition-colors block truncate">{{ post.title }}</Link>
                                 <div class="text-xs text-base-content/60 mt-1 flex items-center gap-2">
                                     <span class="badge badge-xs font-bold uppercase" :class="post.status === 'published' ? 'badge-success badge-outline' : 'badge-warning badge-outline'">{{ post.status }}</span>
                                     <span>&bull;</span>
@@ -136,7 +136,7 @@
                                 </div>
                             </div>
                         </li>
-                        <li v-if="recentPosts.length === 0" class="p-8 text-center text-base-content/50 font-medium">No recent activity</li>
+                        <li v-if="recentPosts.length === 0" class="p-8 text-center text-base-content/50 font-medium">{{ t('blogAdmin.noRecentActivity') }}</li>
                     </ul>
                 </div>
             </div>
@@ -147,10 +147,15 @@
 
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import Layout from '../Layout.vue';
+import { useBlogRoutes } from '../../admin-routes';
 import { Post } from '../../types';
 
 defineOptions({ layout: Layout });
+
+const { t } = useI18n();
+const { adminUrl } = useBlogRoutes();
 
 defineProps<{
     stats: {

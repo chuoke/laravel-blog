@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@plugin "daisyui" {
+  themes: all;
+}
+
+@source "../../../views/themes/minimal/**/*.blade.php";
+
+@theme {
+  --font-serif: "Noto Serif SC", ui-serif, Georgia, serif;
+}
+
+@layer base {
+  html {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

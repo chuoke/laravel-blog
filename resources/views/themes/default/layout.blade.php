@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', config('app.name', 'Blog'))</title>
+    @php
+        $__blogTitle = trim(View::yieldContent('title'));
+        $pageTitle = $__blogTitle !== '' ? $__blogTitle.' — '.config('app.name', 'Blog') : config('app.name', 'Blog');
+    @endphp
+    <title>{{ $pageTitle }}</title>
     <meta name="description" content="@yield('meta_description', '')">
     <link rel="canonical" href="@yield('canonical', request()->url())">
-    <meta property="og:title" content="@yield('title', config('app.name'))">
+    <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description" content="@yield('meta_description', '')">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ request()->url() }}">
@@ -32,16 +36,16 @@
             </a>
 
             <nav class="hidden md:flex items-center gap-9 text-[0.9rem] font-medium text-base-content/60">
-                <a href="{{ route('blog.home') }}" class="hover:text-base-content transition-colors duration-150">Home</a>
-                <a href="{{ route('blog.posts.index') }}" class="hover:text-base-content transition-colors duration-150">Articles</a>
+                <a href="{{ route('blog.home') }}" class="hover:text-base-content transition-colors duration-150">{{ __('blog::ui.home') }}</a>
+                <a href="{{ route('blog.posts.index') }}" class="hover:text-base-content transition-colors duration-150">{{ __('blog::ui.articles') }}</a>
             </nav>
 
             <div class="flex items-center gap-2">
                 <form action="{{ route('blog.posts.index') }}" method="GET" class="hidden md:block">
                     <label class="relative block">
-                        <span class="sr-only">Search articles</span>
+                        <span class="sr-only">{{ __('blog::ui.search_articles') }}</span>
                         <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/35" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search"
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('blog::ui.search') }}"
                             class="w-44 focus:w-64 rounded-field bg-base-200 border border-transparent focus:border-primary/40 focus:bg-base-100 pl-9 pr-3 py-2 text-sm transition-[width,background-color,border-color] duration-300 ease-out outline-none">
                     </label>
                 </form>
@@ -55,10 +59,10 @@
                     <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
                         x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
                         class="absolute right-0 top-12 w-52 rounded-box bg-base-100 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_16px_32px_-12px_rgba(15,15,15,0.2)] border border-base-300/70 p-2" style="display: none;">
-                        <a href="{{ route('blog.home') }}" class="block px-3 py-2 rounded-field text-sm font-medium hover:bg-base-200">Home</a>
-                        <a href="{{ route('blog.posts.index') }}" class="block px-3 py-2 rounded-field text-sm font-medium hover:bg-base-200">Articles</a>
+                        <a href="{{ route('blog.home') }}" class="block px-3 py-2 rounded-field text-sm font-medium hover:bg-base-200">{{ __('blog::ui.home') }}</a>
+                        <a href="{{ route('blog.posts.index') }}" class="block px-3 py-2 rounded-field text-sm font-medium hover:bg-base-200">{{ __('blog::ui.articles') }}</a>
                         <form action="{{ route('blog.posts.index') }}" method="GET" class="px-1 pt-1">
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search"
+                            <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('blog::ui.search') }}"
                                 class="w-full rounded-field bg-base-200 px-3 py-2 text-sm outline-none">
                         </form>
                     </div>
@@ -76,7 +80,7 @@
             <p class="font-display font-bold text-sm tracking-[-0.01em] text-base-content/70">
                 {{ config('app.name', 'Blog') }}<span class="text-primary">.</span>
             </p>
-            <p class="text-xs text-base-content/40 font-medium">&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+            <p class="text-xs text-base-content/40 font-medium">{{ __('blog::ui.copyright', ['year' => date('Y'), 'site' => config('app.name')]) }}</p>
         </div>
     </footer>
     @stack('scripts')

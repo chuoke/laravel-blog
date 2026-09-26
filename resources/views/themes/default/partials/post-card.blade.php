@@ -1,7 +1,7 @@
 @php $locale = app()->getLocale(); @endphp
 
 <article class="group h-full flex flex-col">
-    <a href="{{ route('blog.posts.show', $post->slug) }}" class="block aspect-[16/10] rounded-box overflow-hidden mb-4 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-14px_rgba(15,15,15,0.18)] transition-shadow duration-300 group-hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_20px_36px_-16px_rgba(15,15,15,0.28)]">
+    <a href="{{ route('blog.posts.show', $post) }}" class="block aspect-[16/10] rounded-box overflow-hidden mb-4 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-14px_rgba(15,15,15,0.18)] transition-shadow duration-300 group-hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_20px_36px_-16px_rgba(15,15,15,0.28)]">
         @if($post->coverImage)
             <img src="{{ $post->coverImage->url }}" alt="{{ $post->title }}" loading="lazy" width="480" height="300" class="w-full h-full object-cover outline outline-1 outline-black/10 -outline-offset-1 transition-transform duration-500 group-hover:scale-[1.04]">
         @else
@@ -16,10 +16,10 @@
             <a href="{{ route('blog.category.show', $post->category->slug) }}" class="font-semibold text-primary hover:underline">{{ $post->category->name[$locale] ?? array_values($post->category->name)[0] ?? '' }}</a>
             <span class="text-base-content/25">&bull;</span>
         @endif
-        <span class="text-base-content/45 font-medium">{{ $post->published_at?->format('M d, Y') }}</span>
+        <span class="text-base-content/45 font-medium">{{ Blog::formatDate($post->published_at, 'short', $post->language) }}</span>
     </div>
 
-    <a href="{{ route('blog.posts.show', $post->slug) }}">
+    <a href="{{ route('blog.posts.show', $post) }}">
         <h3 class="font-display font-bold text-[1.05rem] leading-snug tracking-[-0.005em] group-hover:text-primary transition-colors duration-150 line-clamp-2">{{ $post->title }}</h3>
     </a>
 

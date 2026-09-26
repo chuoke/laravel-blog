@@ -4,13 +4,13 @@
     $posts = Blog::paginatedPosts(['category_id' => $category->id], 15);
 @endphp
 
-@section('title', ($category->name[$locale] ?? array_values($category->name)[0] ?? 'Category') . ' — ' . config('app.name'))
+@section('title', ($category->name[$locale] ?? array_values($category->name)[0] ?? __('blog::ui.fallback_category')))
 
 @section('content')
 <div class="max-w-6xl mx-auto px-5 sm:px-8 py-12 sm:py-16 flex flex-col lg:flex-row gap-14">
     <div class="flex-1 min-w-0">
         <div class="mb-10">
-            <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-2">Category</p>
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-2">{{ __('blog::ui.fallback_category') }}</p>
             <h1 class="font-display font-extrabold text-3xl tracking-[-0.015em] text-balance">{{ $category->name[$locale] ?? array_values($category->name)[0] }}</h1>
             @if($desc = ($category->description[$locale] ?? array_values($category->description ?? [])[0] ?? null))
                 <p class="text-base-content/55 mt-3 leading-relaxed max-w-lg text-pretty">{{ $desc }}</p>
@@ -23,7 +23,7 @@
                     @include('blog::partials.post-card', ['post' => $post])
                 </div>
             @empty
-                <p class="text-base-content/40 py-10 col-span-2 text-center font-medium">No posts in this category.</p>
+                <p class="text-base-content/40 py-10 col-span-2 text-center font-medium">{{ __('blog::ui.no_posts_category') }}</p>
             @endforelse
         </div>
 

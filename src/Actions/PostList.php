@@ -12,6 +12,11 @@ class PostList
     {
         $query = Post::with(['category', 'tags', 'author', 'coverImage']);
 
+        if ($data->search !== null && $data->search !== '') {
+            $like = '%'.addcslashes($data->search, '\\%_').'%';
+            $query->whereRaw("title LIKE ? ESCAPE '\\'", [$like]);
+        }
+
         if ($data->categoryId !== null) {
             $query->where('category_id', $data->categoryId);
         }
@@ -24,12 +29,21 @@ class PostList
             $query->where('language', $data->language);
         }
 
+        if ($data->pinnedOnly) {
+            $query->where('is_pinned', true);
+        }
+
         // By default, only show original posts (not translations)
         if ($data->originOnly === true || $data->originOnly === null) {
             $query->whereColumn('article_id', 'id');
         }
 
-        $query->latest('id');
+        $sortColumn = match ($data->sortBy) {
+            'id', 'view_count', 'published_at', 'updated_at' => $data->sortBy,
+            default => 'id',
+        };
+
+        $query->orderByDesc($sortColumn)->orderByDesc('id');
 
         return $query->paginate($data->perPage);
     }

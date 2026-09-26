@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@plugin "daisyui" {
+  themes: all;
+}
+
+@source "../../../views/themes/newsroom/**/*.blade.php";
+
+@layer base {
+  html { font-family: ui-sans-serif, system-ui, sans-serif; }
+}
+
+@layer utilities {
+  .line-clamp-2 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+}

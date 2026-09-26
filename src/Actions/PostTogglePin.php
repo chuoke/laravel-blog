@@ -2,6 +2,7 @@
 
 namespace Chuoke\Blog\Actions;
 
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Post;
 
 class PostTogglePin
@@ -16,6 +17,8 @@ class PostTogglePin
                 ->where('id', '!=', $post->id)
                 ->update(['is_pinned' => $post->is_pinned]);
         }
+
+        Blog::forgetFrontCache();
 
         return $post;
     }

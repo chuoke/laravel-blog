@@ -1,35 +1,16 @@
 <?php
 
-it('creates a post via the API using an explicit author_id when unauthenticated', function () {
-    $response = $this->postJson('/api/blog/posts', [
-        'title' => 'Hello World',
-        'content' => 'Some content',
-        'author_id' => 1,
-    ]);
+use Illuminate\Foundation\Auth\User;
 
-    $response->assertCreated();
+beforeEach(function () {
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
 
-    $this->assertDatabaseHas('blog_posts', [
-        'title' => 'Hello World',
-        'author_id' => 1,
-    ]);
+    $this->actingAs($user);
 });
 
-it('rejects an API post creation without an author_id when unauthenticated', function () {
+it('creates a post via the API for the authenticated author', function () {
     $response = $this->postJson('/api/blog/posts', [
-        'title' => 'Hello World',
-        'content' => 'Some content',
-    ]);
-
-    $response->assertStatus(422);
-    $response->assertJsonValidationErrors('author_id');
-});
-
-it('ignores a spoofed author_id and uses the authenticated user instead', function () {
-    $user = new \Illuminate\Foundation\Auth\User();
-    $user->forceFill(['id' => 42])->exists = true;
-
-    $response = $this->actingAs($user)->postJson('/api/blog/posts', [
         'title' => 'Hello World',
         'content' => 'Some content',
         'author_id' => 999,
@@ -39,6 +20,15 @@ it('ignores a spoofed author_id and uses the authenticated user instead', functi
 
     $this->assertDatabaseHas('blog_posts', [
         'title' => 'Hello World',
-        'author_id' => 42,
+        'author_id' => 1,
     ]);
+});
+
+it('validates API post creation requests', function () {
+    $response = $this->postJson('/api/blog/posts', [
+        'content' => 'Some content',
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors('title');
 });

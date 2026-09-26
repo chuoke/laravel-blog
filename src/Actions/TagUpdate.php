@@ -3,6 +3,7 @@
 namespace Chuoke\Blog\Actions;
 
 use Chuoke\Blog\Dtos\TagUpdateData;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Tag;
 
 class TagUpdate
@@ -11,11 +12,13 @@ class TagUpdate
     {
         $updateAttributes = array_filter([
             'name' => $data->name,
-        ], fn($value) => $value !== null);
+        ], fn ($value) => $value !== null);
 
-        if (!empty($updateAttributes)) {
+        if (! empty($updateAttributes)) {
             $tag->update($updateAttributes);
         }
+
+        Blog::forgetFrontCache();
 
         return $tag->fresh();
     }

@@ -2,11 +2,13 @@
 
 namespace Chuoke\Blog;
 
-use Chuoke\Blog\Models\Post;
+use Carbon\CarbonInterface;
 use Chuoke\Blog\Models\Category;
+use Chuoke\Blog\Models\Post;
 use Chuoke\Blog\Models\Tag;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class BlogManager
 {
@@ -15,16 +17,46 @@ class BlogManager
      */
     protected array $cache = [];
 
+    public function formatDate(?CarbonInterface $date, string $format = 'short', ?string $locale = null): ?string
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        $pattern = match ($format) {
+            'long' => 'LL',
+            'full' => 'LLLL',
+            'month' => 'MMMM YYYY',
+            'monthName' => 'MMM',
+            'day' => 'D',
+            'year' => 'YYYY',
+            default => 'll',
+        };
+
+        return $date->copy()
+            ->locale($locale ?? config('blog.locale', app()->getLocale()))
+            ->isoFormat($pattern);
+    }
+
+    public function formatRelativeDate(?CarbonInterface $date, ?string $locale = null): ?string
+    {
+        return $date?->copy()
+            ->locale($locale ?? config('blog.locale', app()->getLocale()))
+            ->diffForHumans();
+    }
+
     /**
      * Get the latest published posts
      */
     public function latestPosts(int $limit = 10, ?string $language = null): Collection
     {
-        return $this->basePostQuery($language)
+        $language = $language ?? app()->getLocale();
+
+        return $this->rememberFront("latest:{$language}:{$limit}", fn () => $this->basePostQuery($language)
             ->orderBy('published_at', 'desc')
             ->orderBy('id', 'desc')
             ->limit($limit)
-            ->get();
+            ->get());
     }
 
     /**
@@ -35,7 +67,7 @@ class BlogManager
     {
         $query = $this->basePostQuery($language);
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             // Escape LIKE wildcards in user input so a literal '%' or '_' in the
             // search term isn't treated as a wildcard. An explicit ESCAPE clause
             // is required for this to work consistently across drivers (SQLite
@@ -45,22 +77,22 @@ class BlogManager
 
             $query->where(function ($q) use ($like, $escapeClause) {
                 $q->whereRaw("title LIKE ? {$escapeClause}", [$like])
-                  ->orWhereRaw("summary LIKE ? {$escapeClause}", [$like])
-                  ->orWhereRaw("content LIKE ? {$escapeClause}", [$like]);
+                    ->orWhereRaw("summary LIKE ? {$escapeClause}", [$like])
+                    ->orWhereRaw("content LIKE ? {$escapeClause}", [$like]);
             });
         }
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('category_id', $filters['category_id']);
         }
 
-        if (!empty($filters['tag_id'])) {
+        if (! empty($filters['tag_id'])) {
             $query->whereHas('tags', function ($q) use ($filters) {
                 $q->where('blog_tags.id', $filters['tag_id']);
             });
         }
 
-        if (!empty($filters['author_id'])) {
+        if (! empty($filters['author_id'])) {
             $query->where('author_id', $filters['author_id']);
         }
 
@@ -72,12 +104,14 @@ class BlogManager
      */
     public function pinnedPosts(int $limit = 5, ?string $language = null): Collection
     {
-        return $this->basePostQuery($language)
+        $language = $language ?? app()->getLocale();
+
+        return $this->rememberFront("pinned:{$language}:{$limit}", fn () => $this->basePostQuery($language)
             ->where('is_pinned', true)
             ->orderBy('published_at', 'desc')
             ->orderBy('id', 'desc')
             ->limit($limit)
-            ->get();
+            ->get());
     }
 
     /**
@@ -85,20 +119,22 @@ class BlogManager
      */
     public function popularPosts(int $limit = 5, ?string $language = null): Collection
     {
-        return $this->basePostQuery($language)
+        $language = $language ?? app()->getLocale();
+
+        return $this->rememberFront("popular:{$language}:{$limit}", fn () => $this->basePostQuery($language)
             ->orderBy('view_count', 'desc')
             ->orderBy('id', 'desc')
             ->limit($limit)
-            ->get();
+            ->get());
     }
 
     /**
      * Get a specific post by slug
      */
-    public function post(string $slug, ?string $language = null): ?Post
+    public function post(string $uid, ?string $language = null): ?Post
     {
         return $this->basePostQuery($language)
-            ->where('slug', $slug)
+            ->where('uid', $uid)
             ->first();
     }
 
@@ -135,10 +171,10 @@ class BlogManager
         return $this->basePostQuery($post->language)
             ->where(function ($query) use ($post) {
                 $query->where('published_at', '<', $post->published_at)
-                      ->orWhere(function ($q) use ($post) {
-                          $q->where('published_at', '=', $post->published_at)
+                    ->orWhere(function ($q) use ($post) {
+                        $q->where('published_at', '=', $post->published_at)
                             ->where('id', '<', $post->id);
-                      });
+                    });
             })
             ->orderBy('published_at', 'desc')
             ->orderBy('id', 'desc')
@@ -153,10 +189,10 @@ class BlogManager
         return $this->basePostQuery($post->language)
             ->where(function ($query) use ($post) {
                 $query->where('published_at', '>', $post->published_at)
-                      ->orWhere(function ($q) use ($post) {
-                          $q->where('published_at', '=', $post->published_at)
+                    ->orWhere(function ($q) use ($post) {
+                        $q->where('published_at', '=', $post->published_at)
                             ->where('id', '>', $post->id);
-                      });
+                    });
             })
             ->orderBy('published_at', 'asc')
             ->orderBy('id', 'asc')
@@ -180,11 +216,11 @@ class BlogManager
         $language = $language ?? app()->getLocale();
         $key = "categoriesWithCount:{$language}";
 
-        return $this->remember($key, function () use ($language) {
+        return $this->remember($key, fn () => $this->rememberFront("categories-with-count:{$language}", function () use ($language) {
             $publishedScope = function ($query) use ($language) {
                 $query->where('status', 'published')
-                      ->where('language', $language)
-                      ->where('published_at', '<=', now());
+                    ->where('language', $language)
+                    ->where('published_at', '<=', now());
             };
 
             // whereHas() + withCount() (rather than a HAVING clause on the
@@ -195,7 +231,7 @@ class BlogManager
                 ->whereHas('posts', $publishedScope)
                 ->orderBy('sort_order')
                 ->get();
-        });
+        }));
     }
 
     /**
@@ -203,9 +239,7 @@ class BlogManager
      */
     public function categories(): Collection
     {
-        return $this->remember('categories', function () {
-            return Category::orderBy('sort_order')->get();
-        });
+        return $this->remember('categories', fn () => $this->rememberFront('categories', fn () => Category::orderBy('sort_order')->get()));
     }
 
     /**
@@ -225,17 +259,17 @@ class BlogManager
         $language = $language ?? app()->getLocale();
         $key = "tagsWithCount:{$language}";
 
-        return $this->remember($key, function () use ($language) {
+        return $this->remember($key, fn () => $this->rememberFront("tags-with-count:{$language}", function () use ($language) {
             $publishedScope = function ($query) use ($language) {
                 $query->where('status', 'published')
-                      ->where('language', $language)
-                      ->where('published_at', '<=', now());
+                    ->where('language', $language)
+                    ->where('published_at', '<=', now());
             };
 
             return Tag::withCount(['posts' => $publishedScope])
                 ->whereHas('posts', $publishedScope)
                 ->get();
-        });
+        }));
     }
 
     /**
@@ -243,9 +277,7 @@ class BlogManager
      */
     public function tags(): Collection
     {
-        return $this->remember('tags', function () {
-            return Tag::all();
-        });
+        return $this->remember('tags', fn () => $this->rememberFront('tags', fn () => Tag::all()));
     }
 
     /**
@@ -257,7 +289,7 @@ class BlogManager
         $language = $language ?? app()->getLocale();
         $key = "archives:{$language}";
 
-        return $this->remember($key, function () use ($language) {
+        return $this->remember($key, fn () => $this->rememberFront("archives:{$language}", function () use ($language) {
             // Grouped in PHP rather than via SQL YEAR()/MONTH() (MySQL-only
             // functions not supported by SQLite/Postgres) to keep this
             // portable across database drivers.
@@ -276,7 +308,7 @@ class BlogManager
                     'count' => $group->count(),
                 ])
                 ->values();
-        });
+        }));
     }
 
     /**
@@ -285,6 +317,14 @@ class BlogManager
     public function recordView(Post $post): void
     {
         $post->increment('view_count');
+    }
+
+    public function forgetFrontCache(): void
+    {
+        $this->cache = [];
+
+        Cache::add('blog:front:version', 1);
+        Cache::increment('blog:front:version');
     }
 
     /**
@@ -308,10 +348,23 @@ class BlogManager
      */
     protected function remember(string $key, callable $callback): mixed
     {
-        if (!array_key_exists($key, $this->cache)) {
+        if (! array_key_exists($key, $this->cache)) {
             $this->cache[$key] = $callback();
         }
 
         return $this->cache[$key];
+    }
+
+    protected function rememberFront(string $key, callable $callback): mixed
+    {
+        $version = Cache::rememberForever('blog:front:version', fn () => 1);
+        $ttl = (int) config('blog.cache.front_ttl', 300);
+        $jitter = $ttl > 0 ? random_int(1, max(1, intdiv($ttl, 10))) : 0;
+
+        return Cache::remember(
+            "blog:front:v{$version}:{$key}",
+            now()->addSeconds($ttl + $jitter),
+            $callback,
+        );
     }
 }

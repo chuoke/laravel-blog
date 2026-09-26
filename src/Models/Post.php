@@ -2,12 +2,14 @@
 
 namespace Chuoke\Blog\Models;
 
+use Carbon\Carbon;
+use Chuoke\Blog\Support\BlogLocale;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -20,17 +22,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $summary
  * @property string $content
  * @property string $status
- * @property \Carbon\Carbon|null $published_at
+ * @property Carbon|null $published_at
  * @property bool $is_pinned
  * @property int|null $cover_image_id
  * @property string $source_type
  * @property string|null $source_url
  * @property string $language
  * @property int $view_count
- * @property \Carbon\Carbon|null $created_at
- * @property \Carbon\Carbon|null $updated_at
- * @property \Carbon\Carbon|null $deleted_at
- *
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property-read Category|null $category
  * @property-read Collection<int, Tag> $tags
  * @property-read self|null $original
@@ -50,6 +51,23 @@ class Post extends Model
         'published_at' => 'datetime',
         'is_pinned' => 'boolean',
     ];
+
+    protected $appends = ['language_label'];
+
+    public function languageOption(): BlogLocale
+    {
+        return BlogLocale::from($this->language);
+    }
+
+    public function getLanguageLabelAttribute(): string
+    {
+        return $this->languageOption()->label;
+    }
+
+    public function getRouteKey(): string
+    {
+        return "{$this->uid}-{$this->slug}";
+    }
 
     /**
      * Check if this post is the original (first) post of an article group.

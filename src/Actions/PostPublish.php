@@ -2,6 +2,7 @@
 
 namespace Chuoke\Blog\Actions;
 
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Post;
 
 class PostPublish
@@ -12,6 +13,8 @@ class PostPublish
             'status' => 'published',
             'published_at' => $post->published_at ?? now(),
         ]);
+
+        Blog::forgetFrontCache();
 
         return $post;
     }

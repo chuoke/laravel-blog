@@ -4,9 +4,10 @@
     $previous = Blog::previousPost($post);
     $next = Blog::nextPost($post);
     $related = Blog::relatedPosts($post, 3);
+    $renderedPost = app(\Chuoke\Blog\Actions\RenderMarkdownWithToc::class)->execute($post->content);
 @endphp
 
-@section('title', $post->title . ' — ' . config('app.name'))
+@section('title', $post->title)
 @section('meta_description', $post->summary ?? Str::limit(strip_tags($post->content), 155))
 @section('og_type', 'article')
 @if($post->coverImage) @section('og_image', $post->coverImage->url) @endif
@@ -22,9 +23,9 @@
                     </a>
                     <span class="text-base-content/25">&bull;</span>
                 @endif
-                <span class="text-base-content/50 font-medium">{{ $post->published_at?->format('F d, Y') }}</span>
+                <span class="text-base-content/50 font-medium">{{ Blog::formatDate($post->published_at, 'long', $post->language) }}</span>
                 <span class="text-base-content/25">&bull;</span>
-                <span class="text-base-content/50 font-medium tabular-nums">{{ number_format($post->view_count) }} views</span>
+                <span class="text-base-content/50 font-medium tabular-nums">{{ __('blog::ui.views', ['count' => number_format($post->view_count)]) }}</span>
             </div>
 
             <h1 class="font-display font-extrabold text-3xl sm:text-[2.5rem] leading-[1.1] tracking-[-0.02em] text-balance mb-8">{{ $post->title }}</h1>
@@ -43,7 +44,7 @@
                         prose-img:rounded-box
                         prose-pre:bg-neutral prose-pre:text-neutral-content prose-pre:rounded-box
                         prose-code:before:content-none prose-code:after:content-none">
-                {!! app(\Chuoke\Blog\Actions\RenderMarkdown::class)->execute($post->content) !!}
+                {!! $renderedPost->html !!}
             </div>
 
             @if($post->tags->isNotEmpty())
@@ -60,14 +61,14 @@
         @if($previous || $next)
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
             @if($previous)
-                <a href="{{ route('blog.posts.show', $previous->slug) }}" class="group rounded-box bg-base-100 p-5 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-16px_rgba(15,15,15,0.14)] hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_16px_32px_-16px_rgba(15,15,15,0.22)] transition-shadow duration-300">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40 mb-1.5">&larr; Previous</p>
+                <a href="{{ route('blog.posts.show', $previous) }}" class="group rounded-box bg-base-100 p-5 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-16px_rgba(15,15,15,0.14)] hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_16px_32px_-16px_rgba(15,15,15,0.22)] transition-shadow duration-300">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40 mb-1.5">{{ __('blog::ui.previous') }}</p>
                     <p class="font-display font-bold text-sm group-hover:text-primary transition-colors duration-150 line-clamp-2">{{ $previous->title }}</p>
                 </a>
             @else <div></div> @endif
             @if($next)
-                <a href="{{ route('blog.posts.show', $next->slug) }}" class="group rounded-box bg-base-100 p-5 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-16px_rgba(15,15,15,0.14)] hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_16px_32px_-16px_rgba(15,15,15,0.22)] transition-shadow duration-300 text-right">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40 mb-1.5">Next &rarr;</p>
+                <a href="{{ route('blog.posts.show', $next) }}" class="group rounded-box bg-base-100 p-5 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-16px_rgba(15,15,15,0.14)] hover:shadow-[0_1px_2px_rgba(15,15,15,0.05),0_16px_32px_-16px_rgba(15,15,15,0.22)] transition-shadow duration-300 text-right">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40 mb-1.5">{{ __('blog::ui.next') }}</p>
                     <p class="font-display font-bold text-sm group-hover:text-primary transition-colors duration-150 line-clamp-2">{{ $next->title }}</p>
                 </a>
             @endif
@@ -76,7 +77,7 @@
 
         @if($related->isNotEmpty())
         <section class="mt-14">
-            <h2 class="font-display font-bold text-lg tracking-[-0.01em] mb-6">Related</h2>
+            <h2 class="font-display font-bold text-lg tracking-[-0.01em] mb-6">{{ __('blog::ui.related') }}</h2>
             <div class="grid sm:grid-cols-3 gap-6">
                 @foreach($related as $rel)
                     @include('blog::partials.post-card', ['post' => $rel])
@@ -87,6 +88,20 @@
     </div>
 
     <aside class="w-full lg:w-72 flex-shrink-0 space-y-8">
+        @if(count($renderedPost->tableOfContents) >= 2)
+            <nav aria-label="Table of contents" class="rounded-box bg-base-100 p-5 shadow-[0_1px_2px_rgba(15,15,15,0.04),0_8px_20px_-16px_rgba(15,15,15,0.14)] lg:sticky lg:top-24">
+                <p class="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/45">{{ __('blog::ui.on_this_page') }}</p>
+                <ol class="space-y-2 border-l border-base-300">
+                    @foreach($renderedPost->tableOfContents as $item)
+                        <li @class(['ml-3' => $item['level'] === 3])>
+                            <a href="#{{ $item['id'] }}" class="block border-l border-transparent -ml-px py-0.5 pl-3 text-sm leading-snug text-base-content/60 transition-colors hover:border-primary hover:text-primary">
+                                {{ $item['text'] }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ol>
+            </nav>
+        @endif
         @include('blog::partials.sidebar')
     </aside>
 </div>

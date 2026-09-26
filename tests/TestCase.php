@@ -2,16 +2,17 @@
 
 namespace Chuoke\Blog\Tests;
 
-use Orchestra\Testbench\TestCase as Orchestra;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Providers\BlogServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->setUpDatabase($this->app);
     }
 
@@ -25,18 +26,19 @@ class TestCase extends Orchestra
     protected function getPackageAliases($app)
     {
         return [
-            'Blog' => \Chuoke\Blog\Facades\Blog::class,
+            'Blog' => Blog::class,
         ];
     }
 
     protected function getEnvironmentSetUp($app)
     {
+        $app['config']->set('app.key', 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
         // Setup default database to use sqlite :memory:
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
-            'driver'   => 'sqlite',
+            'driver' => 'sqlite',
             'database' => ':memory:',
-            'prefix'   => '',
+            'prefix' => '',
         ]);
     }
 
@@ -49,6 +51,6 @@ class TestCase extends Orchestra
             $table->timestamps();
         });
 
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }

@@ -11,6 +11,7 @@ use Chuoke\Blog\Actions\PostGet;
 use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Actions\PostUpdate;
 use Chuoke\Blog\Actions\PostDelete;
+use Chuoke\Blog\Actions\PostTogglePin;
 use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Dtos\PostUpdateData;
 use Chuoke\Blog\Dtos\PostListData;
@@ -21,17 +22,20 @@ class PostController extends Controller
     {
         $data = new PostListData(
             perPage: (int) $request->get('per_page', 15),
+            search: $request->filled('search') ? $request->string('search')->trim()->value() : null,
             categoryId: $request->get('category_id'),
             status: $request->get('status'),
             language: $request->get('language'),
             originOnly: $request->boolean('origin_only', true),
+            pinnedOnly: $request->boolean('pinned_only'),
+            sortBy: $request->get('sort_by', 'id'),
         );
         
         $posts = $action->execute($data);
 
         return Inertia::render('Blog/Admin/Posts/Index', [
             'posts' => $posts,
-            'filters' => $request->only(['category_id', 'status', 'language', 'origin_only']),
+            'filters' => $request->only(['search', 'category_id', 'status', 'language', 'origin_only', 'pinned_only', 'sort_by']),
             'locales' => config('blog.supported_locales', ['en' => 'English']),
         ]);
     }
@@ -87,6 +91,10 @@ class PostController extends Controller
 
     public function update(Request $request, Post $post, PostUpdate $action)
     {
+        $validated = $request->validate([
+            'language' => 'nullable|string|max:10',
+        ]);
+
         $data = new PostUpdateData(
             title: $request->input('title'),
             content: $request->input('content'),
@@ -94,16 +102,24 @@ class PostController extends Controller
             categoryId: $request->input('category_id'),
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
+            language: $validated['language'] ?? null,
         );
 
         $action->execute($post, $data);
 
-        return redirect()->route('blog.admin.posts.index')->with('success', 'Post updated successfully.');
+        return redirect()->route('blog.admin.posts.edit', $post)->with('success', 'Post updated successfully.');
     }
 
     public function destroy(Post $post, PostDelete $action)
     {
         $action->execute($post);
         return redirect()->route('blog.admin.posts.index')->with('success', 'Post deleted successfully.');
+    }
+
+    public function togglePin(Post $post, PostTogglePin $action)
+    {
+        $action->execute($post);
+
+        return back();
     }
 }

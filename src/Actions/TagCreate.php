@@ -3,6 +3,7 @@
 namespace Chuoke\Blog\Actions;
 
 use Chuoke\Blog\Dtos\TagCreateData;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Tag;
 use Illuminate\Support\Str;
 
@@ -12,9 +13,13 @@ class TagCreate
     {
         $slugName = $data->name[config('blog.locale', 'en')] ?? array_values($data->name)[0] ?? 'tag';
 
-        return Tag::create([
+        $tag = Tag::create([
             'name' => $data->name,
-            'slug' => Str::slug($slugName) . '-' . strtolower(Str::random(4)),
+            'slug' => Str::slug($slugName).'-'.strtolower(Str::random(4)),
         ]);
+
+        Blog::forgetFrontCache();
+
+        return $tag;
     }
 }

@@ -3,7 +3,7 @@
   "private": true,
   "description": "Dev-only build for the package's precompiled default theme CSS. Not required by consumers of the package; the compiled output is committed to resources/css/blog/.",
   "scripts": {
-    "build:theme": "tailwindcss -i ./resources/css/themes/default/source.css -o ./resources/css/blog/theme-default.css --minify"
+        "build:theme": "tailwindcss -i ./resources/css/themes/default/source.css -o ./resources/css/blog/theme-default.css --minify && tailwindcss -i ./resources/css/themes/minimal/source.css -o ./resources/css/blog/theme-minimal.css --minify && tailwindcss -i ./resources/css/themes/magazine/source.css -o ./resources/css/blog/theme-magazine.css --minify && tailwindcss -i ./resources/css/themes/newsroom/source.css -o ./resources/css/blog/theme-newsroom.css --minify"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.14",

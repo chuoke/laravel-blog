@@ -1,5 +1,14 @@
 <?php
 
+use Illuminate\Foundation\Auth\User;
+
+beforeEach(function () {
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $this->actingAs($user);
+});
+
 it('creates a category via the API using the multi-language name format', function () {
     $response = $this->postJson('/api/blog/categories', [
         'name' => ['en' => 'Tech News'],

@@ -20,8 +20,10 @@ class PostController extends Controller
     {
         $data = new PostListData(
             perPage: (int) $request->get('per_page', 15),
+            search: $request->filled('search') ? $request->string('search')->trim()->value() : null,
             categoryId: $request->get('category_id'),
             status: $request->get('status'),
+            language: $request->get('language'),
         );
         return $action->execute($data);
     }
@@ -60,12 +62,18 @@ class PostController extends Controller
 
     public function update(Request $request, Post $post, PostUpdate $action)
     {
+        $validated = $request->validate([
+            'language' => 'nullable|string|max:10',
+        ]);
+
         $data = new PostUpdateData(
             title: $request->input('title'),
             content: $request->input('content'),
+            summary: $request->input('summary'),
             categoryId: $request->input('category_id'),
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
+            language: $validated['language'] ?? null,
         );
 
         $post = $action->execute($post, $data);

@@ -12,6 +12,7 @@ Route::prefix(config('blog.admin_route_prefix', 'admin/blog'))
     ->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         
+        Route::put('posts/{post}/pin', [PostController::class, 'togglePin'])->name('posts.pin');
         Route::resource('posts', PostController::class);
         Route::resource('categories', CategoryController::class)->except(['create', 'show', 'edit']);
         Route::resource('tags', TagController::class)->except(['create', 'show', 'edit']);

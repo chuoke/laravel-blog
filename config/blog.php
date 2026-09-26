@@ -1,5 +1,7 @@
 <?php
 
+use Chuoke\Blog\Support\Nanoid;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -35,7 +37,7 @@ return [
     |
     | The active front-end theme. Each theme is a directory under
     | resources/views/themes/{theme}. Ships with 'default', 'minimal',
-    | and 'magazine'.
+    | 'magazine', and 'newsroom'.
     |
     */
     'theme' => 'default',
@@ -96,12 +98,12 @@ return [
     */
     'uid' => [
         'generator' => [
-            'class' => \Chuoke\Blog\Support\Nanoid::class,
+            'class' => Nanoid::class,
             'config' => [
                 'length' => 10,
-                'alphabet' => '0123456789abcdefghijklmnopqrstuvwxyz'
-            ]
-        ]
+                'alphabet' => '0123456789abcdefghijklmnopqrstuvwxyz',
+            ],
+        ],
     ],
 
     /*
@@ -123,18 +125,14 @@ return [
     |
     | Configuration for the package's API routes.
     |
-    | WARNING: The 'api' middleware group alone does NOT authenticate or
-    | authorize requests. The package's API routes expose full CRUD
-    | (create/update/delete) for posts, categories, tags, and attachments.
-    | Add an authentication guard here (e.g. 'auth:sanctum') plus your own
-    | authorization checks before exposing these routes publicly, or the
-    | API will allow anonymous users to create/modify/delete blog content
-    | and upload arbitrary files.
+    | The default uses the host application's web session and requires an
+    | authenticated user. Add your own authorization middleware if your
+    | application distinguishes blog administrators from other users.
     |
     */
     'api_route_prefix' => 'api/blog',
 
-    'api_middleware' => ['api'],
+    'api_middleware' => ['web', 'auth'],
 
     /*
     |--------------------------------------------------------------------------
@@ -147,6 +145,19 @@ return [
     'front_route_prefix' => 'blog',
 
     'front_middleware' => ['web'],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Front-End Cache
+    |--------------------------------------------------------------------------
+    |
+    | Cache front-end aggregates for this many seconds. Their expiry receives
+    | a small random delay to prevent many keys rebuilding simultaneously.
+    |
+    */
+    'cache' => [
+        'front_ttl' => 300,
+    ],
 
     /*
     |--------------------------------------------------------------------------

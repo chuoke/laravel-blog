@@ -10,19 +10,22 @@ class InstallCommand extends Command
 
     protected $description = 'Install the Blog package frontend scaffolding';
 
-    public function handle()
+    public function handle(): int
     {
         $stack = $this->option('stack');
 
         if ($stack === 'inertia') {
             $this->installInertiaStack();
+
+            return self::SUCCESS;
         } else {
             $this->error("Invalid stack '{$stack}' specified. Supported stacks are: inertia");
-            return 1;
+
+            return self::FAILURE;
         }
     }
 
-    protected function installInertiaStack()
+    protected function installInertiaStack(): void
     {
         $this->info('Installing Blog Inertia/Vue 3 Scaffolding...');
 
@@ -34,6 +37,7 @@ class InstallCommand extends Command
         }
 
         $this->info('Installation complete!');
-        $this->line('Please make sure your host application has Vue 3, Tailwind CSS, and Inertia.js configured.');
+        $this->line('Install the required frontend packages: npm install md-editor-v3 vue-i18n');
+        $this->line('Then register the published blog i18n messages in your Inertia entry. See the package README for the integration snippet.');
     }
 }

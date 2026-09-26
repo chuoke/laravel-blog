@@ -1,13 +1,13 @@
 # Laravel Blog
 
-A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admin panel, a `Blog` facade for on-demand data access, and three ready-to-use front-end themes — all fully driven by DaisyUI color tokens.
+A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admin panel, a `Blog` facade for on-demand data access, and four ready-to-use front-end themes — all fully driven by DaisyUI color tokens.
 
 ## Features
 
 - **Markdown-based** content with full CommonMark support
 - **Multi-language** posts, categories & tags (JSON-based translations)
 - **Admin Panel** — Inertia.js + Vue 3 dashboard with post/category/tag CRUD
-- **Theme System** — 3 built-in themes, easily extensible
+- **Theme System** — 4 built-in themes, easily extensible
 - **DaisyUI Color Tokens** — 30+ color themes, dark mode included, zero custom CSS needed
 - **Blog Facade** — pull-based data API for maximum theme flexibility
 - **SEO Ready** — auto-generated title, description, Open Graph, canonical URLs
@@ -16,7 +16,7 @@ A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admi
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11, 12, or 13
+- Laravel 12 or 13
 
 ## Installation
 
@@ -39,7 +39,23 @@ php artisan migrate
 The admin panel expects your host application to already have Inertia.js 3, Vue 3, Tailwind CSS, and DaisyUI configured. Install the editor dependency:
 
 ```bash
-npm install md-editor-v3
+npm install md-editor-v3 vue-i18n
+```
+
+Register the published blog messages in the host application's Inertia entry:
+
+```ts
+import { createI18n } from 'vue-i18n';
+import { blogAdminMessages } from './Pages/Blog/i18n/admin';
+
+const locale = document.documentElement.lang === 'zh-CN' ? 'zh-CN' : 'en';
+const i18n = createI18n({ legacy: false, locale, fallbackLocale: 'en', messages: blogAdminMessages });
+
+createInertiaApp({
+    setup({ el, App, props, plugin }) {
+        createApp({ render: () => h(App, props) }).use(plugin).use(i18n).mount(el);
+    },
+});
 ```
 
 ### Publishing Individually
@@ -71,7 +87,7 @@ return [
     'locale' => 'en',
     'supported_locales' => ['en' => 'English', 'zh' => 'Chinese'],
 
-    // Front-end view theme: 'default', 'minimal', or 'magazine'
+    // Front-end view theme: 'default', 'minimal', 'magazine', or 'newsroom'
     'theme' => 'default',
 
     // DaisyUI color theme: 'light', 'dark', 'cupcake', 'nord', 'business', etc.
@@ -87,23 +103,24 @@ return [
     'admin_route_prefix' => 'admin/blog',
     'admin_middleware'    => ['web', 'auth'],
     'api_route_prefix'   => 'api/blog',
-    'api_middleware'      => ['api'],
+    'api_middleware'      => ['web', 'auth'],
 ];
 ```
 
-> ⚠️ **Security note:** the default `api_middleware` (`['api']`) only puts the routes in the API middleware group — it does **not** authenticate or authorize requests. The API exposes full create/update/delete for posts, categories, tags, and attachments. Before exposing these routes, add an auth guard (e.g. `'api_middleware' => ['api', 'auth:sanctum']`) and any authorization checks your app needs, or anyone can create/modify/delete blog content and upload files anonymously.
+> **Security note:** API write routes use the host web session and require an authenticated user by default. Add your application's authorization middleware when only designated users should administer the blog.
 >
 > ⚠️ **Markdown note:** `config('blog.markdown.html_input')` defaults to `'strip'`, which removes raw HTML embedded in post Markdown. Only set it to `'allow'` if every author who can create/edit posts is fully trusted — post content is rendered unescaped (`{!! !!}`) in the front-end views, so allowing raw HTML from untrusted authors (especially combined with an unprotected API) is a stored-XSS risk.
 
 ## Themes
 
-Three built-in themes with distinct design philosophies:
+Four built-in themes with distinct design philosophies:
 
 | Theme | Style | Layout | Best For |
 |---|---|---|---|
 | **default** | Modern card-based, Inter font | Main + sidebar | General blogs, tech blogs |
 | **minimal** | Typography-focused, Newsreader serif | Single-column centered | Personal essays, writing |
 | **magazine** | News/editorial, Outfit + Source Serif | Full-width hero grid + multi-column | News sites, online magazines |
+| **newsroom** | Laravel News-inspired editorial | Structured news feed + feature sections | Developer news, publications |
 
 ### Switching Themes
 
@@ -142,7 +159,7 @@ If your project already has a layout with navigation and footer:
 'layout' => 'layouts.app',
 ```
 
-Your layout just needs `@yield('content')` and `@yield('title')`. The blog's content sections will slot right in.
+Your layout just needs `@yield('content')` and `@yield('title')`. The blog's content sections will slot right in. Views provide a bare `@section('title')` (no app-name suffix) so your layout controls the final `<title>` composition — the bundled theme layouts render it as `Title — App Name`. Optional sections: `meta_description`, `canonical`, `og_type`, `og_image`.
 
 ## Blog Facade API
 
@@ -155,11 +172,12 @@ Blog::latestPosts(int $limit = 10, ?string $language = null): Collection
 Blog::paginatedPosts(array $filters = [], int $perPage = 15, ?string $language = null): LengthAwarePaginator
 Blog::pinnedPosts(int $limit = 5, ?string $language = null): Collection
 Blog::popularPosts(int $limit = 5, ?string $language = null): Collection
-Blog::post(string $slug, ?string $language = null): ?Post
+Blog::post(string $uid, ?string $language = null): ?Post
 Blog::relatedPosts(Post $post, int $limit = 5): Collection
 Blog::previousPost(Post $post): ?Post
 Blog::nextPost(Post $post): ?Post
 Blog::recordView(Post $post): void
+Blog::forgetFrontCache(): void
 ```
 
 **Filters for `paginatedPosts`:** `search`, `category_id`, `tag_id`, `author_id`
@@ -196,7 +214,20 @@ Blog::archives(?string $language = null): Collection  // [{year, month, count}]
 @endforeach
 ```
 
-> Sidebar data (`categoriesWithCount`, `tagsWithCount`, `archives`) is automatically cached per-request to prevent duplicate queries.
+### Front-End Cache
+
+The latest, pinned, popular, category, tag, and archive aggregates are cached across requests for five minutes by default. Their expiry is randomly staggered by up to 10% to avoid simultaneous cache rebuilds.
+
+Post, category, and tag changes invalidate these aggregates immediately. View counts are written immediately; the popular-post order can take up to the cache TTL to refresh.
+
+```php
+// config/blog.php
+'cache' => [
+    'front_ttl' => 300, // seconds; set to 0 to disable the added expiry jitter
+],
+```
+
+Call `Blog::forgetFrontCache()` only when changing blog data outside of the package actions.
 
 ## Front-End Routes
 
@@ -204,7 +235,7 @@ Blog::archives(?string $language = null): Collection  // [{year, month, count}]
 |---|---|---|
 | `/blog` | `blog.home` | Homepage |
 | `/blog/posts` | `blog.posts.index` | Post listing |
-| `/blog/{slug}` | `blog.posts.show` | Post detail |
+| `/blog/{uid}-{slug}` | `blog.posts.show` | Post detail |
 | `/blog/category/{slug}` | `blog.category.show` | Category page |
 | `/blog/tag/{slug}` | `blog.tag.show` | Tag page |
 

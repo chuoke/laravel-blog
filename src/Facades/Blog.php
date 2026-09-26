@@ -2,15 +2,15 @@
 
 namespace Chuoke\Blog\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Chuoke\Blog\BlogManager;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \Illuminate\Database\Eloquent\Collection latestPosts(int $limit = 10, ?string $language = null)
  * @method static \Illuminate\Contracts\Pagination\LengthAwarePaginator paginatedPosts(array $filters = [], int $perPage = 15, ?string $language = null)
  * @method static \Illuminate\Database\Eloquent\Collection pinnedPosts(int $limit = 5, ?string $language = null)
  * @method static \Illuminate\Database\Eloquent\Collection popularPosts(int $limit = 5, ?string $language = null)
- * @method static \Chuoke\Blog\Models\Post|null post(string $slug, ?string $language = null)
+ * @method static \Chuoke\Blog\Models\Post|null post(string $uid, ?string $language = null)
  * @method static \Illuminate\Database\Eloquent\Collection relatedPosts(\Chuoke\Blog\Models\Post $post, int $limit = 5)
  * @method static \Chuoke\Blog\Models\Post|null previousPost(\Chuoke\Blog\Models\Post $post)
  * @method static \Chuoke\Blog\Models\Post|null nextPost(\Chuoke\Blog\Models\Post $post)
@@ -21,8 +21,11 @@ use Chuoke\Blog\BlogManager;
  * @method static \Illuminate\Database\Eloquent\Collection tagsWithCount(?string $language = null)
  * @method static \Illuminate\Database\Eloquent\Collection tags()
  * @method static \Illuminate\Support\Collection archives(?string $language = null)
+ * @method static string|null formatDate(\Carbon\CarbonInterface|null $date, string $format = 'short', ?string $locale = null)
+ * @method static string|null formatRelativeDate(\Carbon\CarbonInterface|null $date, ?string $locale = null)
+ * @method static void forgetFrontCache()
  *
- * @see \Chuoke\Blog\BlogManager
+ * @see BlogManager
  */
 class Blog extends Facade
 {

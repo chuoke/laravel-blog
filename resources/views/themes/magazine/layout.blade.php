@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', config('app.name', 'Blog'))</title>
+    @php
+        $__blogTitle = trim(View::yieldContent('title'));
+        $pageTitle = $__blogTitle !== '' ? $__blogTitle.' — '.config('app.name', 'Blog') : config('app.name', 'Blog');
+    @endphp
+    <title>{{ $pageTitle }}</title>
     <meta name="description" content="@yield('meta_description', '')">
     <link rel="canonical" href="@yield('canonical', request()->url())">
-    <meta property="og:title" content="@yield('title', config('app.name'))">
+    <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description" content="@yield('meta_description', '')">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:url" content="{{ request()->url() }}">
@@ -31,9 +35,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             {{-- Top bar --}}
             <div class="flex items-center justify-between h-10 text-xs text-base-content/50 border-b border-base-200">
-                <span>{{ now()->format('l, F d, Y') }}</span>
+                <span>{{ Blog::formatDate(now(), 'full') }}</span>
                 <form action="{{ route('blog.posts.index') }}" method="GET" class="flex">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search..."
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="{{ __('blog::ui.search') }}"
                         class="bg-transparent text-xs border-none focus:outline-none w-32 placeholder-base-content/30">
                     <button type="submit" class="text-base-content/40 hover:text-primary">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -46,8 +50,8 @@
             </div>
             {{-- Nav --}}
             <nav class="flex items-center justify-center gap-8 py-3 border-t border-base-200 text-sm font-semibold uppercase tracking-wider text-base-content/70">
-                <a href="{{ route('blog.home') }}" class="hover:text-primary transition-colors">Home</a>
-                <a href="{{ route('blog.posts.index') }}" class="hover:text-primary transition-colors">All Posts</a>
+                <a href="{{ route('blog.home') }}" class="hover:text-primary transition-colors">{{ __('blog::ui.home') }}</a>
+                <a href="{{ route('blog.posts.index') }}" class="hover:text-primary transition-colors">{{ __('blog::ui.all_posts') }}</a>
                 @foreach(\Chuoke\Blog\Facades\Blog::categories()->take(5) as $navCat)
                     <a href="{{ route('blog.category.show', $navCat->slug) }}" class="hidden md:block hover:text-primary transition-colors">
                         {{ $navCat->name[app()->getLocale()] ?? array_values($navCat->name)[0] ?? '' }}
@@ -63,7 +67,7 @@
 
     <footer class="bg-neutral text-neutral-content mt-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10 text-center">
-            <p class="text-sm opacity-60">&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+            <p class="text-sm opacity-60">{{ __('blog::ui.copyright', ['year' => date('Y'), 'site' => config('app.name')]) }}</p>
         </div>
     </footer>
     @stack('scripts')

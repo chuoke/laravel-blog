@@ -3,6 +3,7 @@
 namespace Chuoke\Blog\Actions;
 
 use Chuoke\Blog\Dtos\PostUpdateData;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Post;
 
 class PostUpdate
@@ -15,6 +16,7 @@ class PostUpdate
             'content' => $data->content,
             'category_id' => $data->categoryId,
             'cover_image_id' => $data->coverImageId,
+            'language' => $data->language,
             'source_type' => $data->sourceType,
             'source_url' => $data->sourceUrl,
         ], fn ($value) => $value !== null);
@@ -37,6 +39,8 @@ class PostUpdate
         if ($data->tagIds !== null) {
             $post->tags()->sync($data->tagIds);
         }
+
+        Blog::forgetFrontCache();
 
         return $post->fresh();
     }

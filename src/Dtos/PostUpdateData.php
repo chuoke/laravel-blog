@@ -11,6 +11,7 @@ readonly class PostUpdateData
         public ?int $categoryId = null,
         public ?array $tagIds = null,
         public ?int $coverImageId = null,
+        public ?string $language = null,
         public ?string $sourceType = null,
         public ?string $sourceUrl = null,
     ) {

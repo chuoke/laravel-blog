@@ -13,7 +13,7 @@ class ThemeAssets
      */
     public static function css(string $theme): string
     {
-        $path = __DIR__."/../../resources/css/blog/{$theme}-theme.css";
+        $path = __DIR__."/../../resources/css/blog/theme-{$theme}.css";
 
         return is_file($path) ? file_get_contents($path) : '';
     }
