@@ -1,5 +1,7 @@
 # Laravel Blog
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/chuoke/laravel-blog.svg?style=flat-square)](https://packagist.org/packages/chuoke/laravel-blog)
+
 A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admin panel, a `Blog` facade for on-demand data access, and four ready-to-use front-end themes — all fully driven by DaisyUI color tokens.
 
 ## Features
@@ -21,7 +23,7 @@ A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admi
 ## Installation
 
 ```bash
-composer require chuoke/laravel-blog
+composer require chuoke/laravel-blog:^1.0
 ```
 
 The package auto-discovers its service provider. Then run:
