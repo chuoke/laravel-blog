@@ -44,7 +44,7 @@
                             :language="locale === 'zh-CN' ? 'zh-CN' : 'en-US'"
                             :theme="editorTheme" 
                             @onUploadImg="onUploadImg"
-                            class="h-full !border-0"
+                            class="h-full! border-0!"
                         />
                     </div>
                     <div v-if="form.errors.content" class="px-6 py-3 bg-error/10 text-error text-sm border-t border-error/20">{{ form.errors.content }}</div>
@@ -52,7 +52,7 @@
             </div>
 
             <!-- Settings Sidebar (Right) -->
-            <div class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
+            <div class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
                 <!-- Summary Card -->
                 <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
                     <label class="block text-sm font-bold text-base-content mb-2">{{ t('blogAdmin.summaryOptional') }}</label>
@@ -281,11 +281,11 @@ const submit = (status: string) => {
 <style>
 /* Adjust md-editor-v3 to fit our theme nicely */
 .md-editor {
-    --md-bk-color: transparent !important;
+    /* --md-bk-color: transparent !important; */
     --md-border-color: transparent !important;
 }
 .dark .md-editor {
-    --md-bk-color: transparent !important;
+    /* --md-bk-color: transparent !important; */
     --md-color: var(--color-base-content) !important;
 }
 </style>

@@ -84,7 +84,7 @@
                         <tr v-for="post in posts.data" :key="post.id" class="hover:bg-base-200/50 transition-colors group">
                             <td class="px-6 py-4 min-w-[300px]">
                                 <div class="flex items-center gap-4">
-                                    <div class="h-14 w-14 rounded-2xl bg-base-200 flex-shrink-0 overflow-hidden border border-base-300 flex items-center justify-center shadow-sm">
+                                    <div class="h-14 w-14 rounded-2xl bg-base-200 shrink-0 overflow-hidden border border-base-300 flex items-center justify-center shadow-sm">
                                         <img v-if="post.cover_image" :src="post.cover_image.url" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500">
                                         <svg class="w-6 h-6 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     </div>

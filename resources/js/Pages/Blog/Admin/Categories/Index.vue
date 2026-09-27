@@ -60,7 +60,7 @@
             </div>
 
             <!-- Form Panel (Right) -->
-            <div ref="formPanel" class="w-full md:w-80 bg-base-100 rounded-3xl shadow-sm border border-base-300 p-6 flex-shrink-0 md:sticky md:top-8">
+            <div ref="formPanel" class="w-full md:w-80 bg-base-100 rounded-3xl shadow-sm border border-base-300 p-6 shrink-0 md:sticky md:top-8">
                 <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
                     <span v-if="editing" class="w-2 h-6 rounded-full bg-warning"></span>
                     <span v-else class="w-2 h-6 rounded-full bg-primary"></span>

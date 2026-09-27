@@ -14,6 +14,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <button v-if="hasMultipleLocales" type="button" class="btn btn-ghost btn-sm" :aria-expanded="translationsExpanded" aria-controls="translation-options" @click="translationsExpanded = !translationsExpanded">
+                    {{ t('blogAdmin.translations') }}
+                    <svg class="size-4 transition-transform" :class="{ 'rotate-180': translationsExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
+                </button>
                 <button type="button" @click="submit" class="btn btn-primary" :disabled="form.processing">
                     <span v-if="form.processing" class="loading loading-spinner loading-sm"></span>
                     {{ t('blogAdmin.saveChanges') }}
@@ -21,9 +25,8 @@
             </div>
         </header>
 
-        <section class="mb-6 rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm" aria-labelledby="translations-heading">
-            <div class="mb-4">
-                <h2 id="translations-heading" class="text-sm font-bold text-base-content">{{ t('blogAdmin.translations') }}</h2>
+        <section v-if="translationsExpanded && hasMultipleLocales" id="translation-options" class="mb-6 rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
+            <div class="mb-3">
                 <p class="mt-1 text-xs leading-5 text-base-content/60">
                     {{ post.is_translation ? t('blogAdmin.translationFromLanguage', { language: originalLanguageLabel }) : t('blogAdmin.translationHelp') }}
                 </p>
@@ -50,7 +53,7 @@
 
         <!-- Two Column Layout -->
         <div class="flex flex-col lg:flex-row gap-8 items-start">
-            
+
             <!-- Main Content Area (Left) -->
             <div class="flex-1 w-full min-w-0 flex flex-col gap-6">
                 <!-- Title Card -->
@@ -65,13 +68,14 @@
                     <div class="px-6 py-4 border-b border-base-300 bg-base-100/50 flex justify-between items-center">
                         <h2 class="text-sm font-bold text-base-content">{{ t('blogAdmin.contentMarkdown') }}</h2>
                     </div>
-                    <div class="flex-1 overflow-hidden relative">
-                        <MdEditor 
-                            v-model="form.content" 
+                    <div class="relative min-h-0 flex-1 overflow-hidden">
+                        <MdEditor
+                            v-model="form.content"
+                            height="100%"
                             :language="locale === 'zh-CN' ? 'zh-CN' : 'en-US'"
-                            :theme="editorTheme" 
+                            :theme="editorTheme"
                             @onUploadImg="onUploadImg"
-                            class="h-full !border-0"
+                            class="h-full! border-0!"
                         />
                     </div>
                     <div v-if="form.errors.content" class="px-6 py-3 bg-error/10 text-error text-sm border-t border-error/20">{{ form.errors.content }}</div>
@@ -79,7 +83,7 @@
             </div>
 
             <!-- Settings Sidebar (Right) -->
-            <div class="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
+            <div class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
                 <!-- Summary Card -->
                 <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
                     <label class="block text-sm font-bold text-base-content mb-2">{{ t('blogAdmin.summaryOptional') }}</label>
@@ -92,20 +96,20 @@
                         <svg class="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         {{ t('blogAdmin.coverImage') }}
                     </h3>
-                    
+
                     <div v-if="coverImageUrl" class="relative group rounded-xl overflow-hidden mb-3 border border-base-300 aspect-video bg-base-200 flex items-center justify-center">
                         <img :src="coverImageUrl" class="object-cover w-full h-full" />
                         <div class="absolute inset-0 bg-base-content/60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                             <button @click="removeCover" type="button" class="btn btn-sm btn-error text-white">{{ t('blogAdmin.remove') }}</button>
                         </div>
                     </div>
-                    
+
                     <div class="relative border-2 border-dashed border-base-300 rounded-xl p-6 text-center hover:bg-base-200 transition-colors cursor-pointer group mb-3 aspect-video flex flex-col items-center justify-center" v-else>
                         <input type="file" @change="uploadCover" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                         <svg class="w-8 h-8 mx-auto text-base-content/40 group-hover:text-primary transition-colors mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         <p class="text-xs text-base-content/60 font-medium">{{ t('blogAdmin.uploadCover') }}</p>
                     </div>
-                    
+
                     <div v-if="uploadingCover" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
                         <span class="loading loading-spinner loading-xs"></span> {{ t('blogAdmin.uploading') }}
                     </div>
@@ -117,7 +121,7 @@
                         <svg class="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         {{ t('blogAdmin.organization') }}
                     </h3>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.originalLanguage') }}</label>
@@ -200,6 +204,7 @@ const { adminUrl, apiUrl } = useBlogRoutes();
 const translation = (language: string) => (props.translations ?? []).find((item) => item.language === language);
 const createTranslation = (language: string) => form.post(adminUrl(`posts/${props.post.id}/translations/${language}`));
 const translationOptions = computed(() => Object.entries(props.locales).filter(([language]) => language !== props.post.language));
+const hasMultipleLocales = computed(() => translationOptions.value.length > 0);
 const originalLanguageLabel = computed(() => props.locales[props.originalLanguage] ?? props.originalLanguage);
 
 const form = useForm({
@@ -215,6 +220,7 @@ const form = useForm({
 const coverImageUrl = ref<string | null>(props.post.cover_image ? props.post.cover_image.url : null);
 const uploadingCover = ref(false);
 const saved = ref(false);
+const translationsExpanded = ref(false);
 const tagSearch = ref('');
 const tagPickerOpen = ref(false);
 const uploadHttp = useHttp({
@@ -262,7 +268,7 @@ const uploadCover = async (e: Event) => {
     uploadingCover.value = true;
     try {
         const attachment = await uploadAttachment(file);
-        
+
         form.cover_image_id = attachment.id;
         coverImageUrl.value = attachment.url;
     } catch (error) {
@@ -270,7 +276,7 @@ const uploadCover = async (e: Event) => {
         alert(t('blogAdmin.uploadFailed'));
     } finally {
         uploadingCover.value = false;
-        target.value = ''; 
+        target.value = '';
     }
 };
 
@@ -315,11 +321,11 @@ const submit = () => {
 <style>
 /* Adjust md-editor-v3 to fit our theme nicely */
 .md-editor {
-    --md-bk-color: transparent !important;
+    /* --md-bk-color: transparent !important; */
     --md-border-color: transparent !important;
 }
 .dark .md-editor {
-    --md-bk-color: transparent !important;
+    /* --md-bk-color: transparent !important; */
     --md-color: var(--color-base-content) !important;
 }
 </style>

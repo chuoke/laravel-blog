@@ -1,7 +1,7 @@
 <template>
     <div class="h-dvh bg-base-200 text-base-content font-sans flex overflow-hidden">
         <!-- Desktop Sidebar -->
-        <aside class="hidden md:flex w-64 bg-base-100 border-r border-base-300 flex-shrink-0">
+        <aside class="hidden md:flex w-64 bg-base-100 border-r border-base-300 shrink-0">
             <AdminNav />
         </aside>
 
@@ -18,7 +18,7 @@
         <!-- Main Content -->
         <main class="flex-1 flex flex-col min-w-0">
             <!-- Mobile Header -->
-            <div class="h-16 bg-base-100 border-b border-base-300 flex items-center px-4 flex-shrink-0 md:hidden">
+            <div class="h-16 bg-base-100 border-b border-base-300 flex items-center px-4 shrink-0 md:hidden">
                 <button type="button" @click="navOpen = true" class="p-2 -ml-2 mr-2 rounded-lg text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors" :aria-label="t('blogAdmin.openNavigation')">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
