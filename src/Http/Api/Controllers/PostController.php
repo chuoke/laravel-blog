@@ -74,6 +74,7 @@ class PostController extends Controller
                     Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English']))),
                     Rule::unique('blog_posts', 'language')
                         ->where('article_id', $post->article_id)
+                        ->whereNull('deleted_at')
                         ->ignore($post->id),
                 ],
         ]);

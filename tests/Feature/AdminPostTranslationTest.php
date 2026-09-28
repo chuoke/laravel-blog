@@ -110,6 +110,30 @@ it('does not allow a translation language to change after creation', function ()
     expect($translation->fresh()->language)->toBe('zh');
 });
 
+it('allows the original language to reuse a soft-deleted translation language', function () {
+    $original = (new PostCreate())->execute(new PostCreateData(
+        title: 'Original post',
+        content: 'Original content',
+        authorId: 1,
+        language: 'en',
+    ));
+    $translation = (new PostCreate())->execute(new PostCreateData(
+        title: 'Translated post',
+        content: 'Translated content',
+        authorId: 1,
+        language: 'zh',
+        articleId: $original->article_id,
+    ));
+    $translation->delete();
+
+    $this->put(route('blog.admin.posts.update', $original->getKey()), ['language' => 'zh'])
+        ->assertRedirect(route('blog.admin.posts.edit', $original->getKey()))
+        ->assertSessionDoesntHaveErrors('language');
+
+    expect($original->fresh()->language)->toBe('zh')
+        ->and(Post::withTrashed()->find($translation->id))->toBeNull();
+});
+
 it('publishes a draft while saving its current edits', function () {
     $post = (new PostCreate())->execute(new PostCreateData(
         title: 'Draft post',
@@ -134,7 +158,9 @@ it('publishes a draft while saving its current edits', function () {
 it('does not pass a click event as a draft save status', function () {
     $page = file_get_contents(__DIR__.'/../../resources/js/Pages/Blog/Admin/Posts/Edit.vue');
 
-    expect($page)->toContain('@click="submit()"');
+    expect($page)
+        ->toContain('@click="submit()"')
+        ->toContain('@click="deleteTranslation(translation(code)!)"');
 });
 
 it('preserves a published date when saving published post edits', function () {
@@ -240,6 +266,32 @@ it('soft deletes the article group when its original post is deleted', function 
 
     expect($original->fresh()->trashed())->toBeTrue()
         ->and($translation->fresh()->trashed())->toBeTrue();
+});
+
+it('deletes a translation and returns to its original post', function () {
+    $original = (new PostCreate())->execute(new PostCreateData(
+        title: 'Original post',
+        content: 'Original content',
+        authorId: 1,
+        language: 'en',
+    ));
+    $translation = (new PostCreate())->execute(new PostCreateData(
+        title: 'Translated post',
+        content: 'Translated content',
+        authorId: 1,
+        language: 'zh',
+        articleId: $original->article_id,
+    ));
+
+    $this->delete(route('blog.admin.posts.destroy', $translation->getKey()))
+        ->assertRedirect(route('blog.admin.posts.edit', $original->getKey()));
+
+    expect($translation->fresh()->trashed())->toBeTrue();
+
+    $this->post(route('blog.admin.posts.translations.store', [$original->getKey(), 'zh']))
+        ->assertRedirect();
+
+    expect(Post::query()->where('article_id', $original->article_id)->where('language', 'zh')->count())->toBe(1);
 });
 
 it('shares article translations with the post edit page', function () {

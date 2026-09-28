@@ -122,6 +122,11 @@ class PostController extends Controller
                 return $existing;
             }
 
+            $original->siblings()
+                ->onlyTrashed()
+                ->where('language', $validated['language'])
+                ->forceDelete();
+
             return $action->execute(new PostCreateData(
                 title: $original->title,
                 content: $original->content,
@@ -152,6 +157,7 @@ class PostController extends Controller
                     Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English']))),
                     Rule::unique('blog_posts', 'language')
                         ->where('article_id', $post->article_id)
+                        ->whereNull('deleted_at')
                         ->ignore($post->id),
                 ],
         ]);
@@ -174,7 +180,13 @@ class PostController extends Controller
 
     public function destroy(Post $post, PostDelete $action)
     {
+        $original = $post->isTranslation() ? $post->original : null;
+
         $action->execute($post);
+
+        if ($original) {
+            return redirect()->route('blog.admin.posts.edit', $original->getKey())->with('success', 'Translation deleted successfully.');
+        }
 
         return redirect()->route('blog.admin.posts.index')->with('success', 'Post deleted successfully.');
     }

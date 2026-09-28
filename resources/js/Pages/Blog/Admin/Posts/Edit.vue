@@ -42,10 +42,15 @@
 
             <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <template v-for="([code, label]) in translationOptions" :key="code">
-                    <Link v-if="translation(code)" :href="adminUrl(`posts/${translation(code)?.id}/edit`)" class="flex min-h-10 items-center justify-between rounded-lg bg-base-200 px-3 text-sm font-medium transition-colors [@media(hover:hover)]:hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98]">
-                        <span>{{ label }}</span>
-                        <span class="text-xs text-base-content/60">{{ t('blogAdmin.common.edit') }}</span>
-                    </Link>
+                    <div v-if="translation(code)" class="flex min-h-10 items-center rounded-lg bg-base-200 text-sm font-medium">
+                        <Link :href="adminUrl(`posts/${translation(code)?.id}/edit`)" class="flex flex-1 items-center justify-between px-3 transition-colors [@media(hover:hover)]:hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98]">
+                            <span>{{ label }}</span>
+                            <span class="text-xs text-base-content/60">{{ t('blogAdmin.common.edit') }}</span>
+                        </Link>
+                        <button type="button" class="mr-1.5 rounded-md p-1.5 text-base-content/50 transition-colors hover:bg-error/10 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" :aria-label="t('blogAdmin.posts.delete')" @click="deleteTranslation(translation(code)!)">
+                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6" /></svg>
+                        </button>
+                    </div>
                     <button v-else type="button" class="flex min-h-10 w-full items-center justify-between rounded-lg border border-dashed border-base-300 px-3 text-left text-sm font-medium text-primary transition-colors [@media(hover:hover)]:hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98] disabled:cursor-wait disabled:opacity-60" :disabled="form.processing || form.isDirty" @click="createTranslation(code)">
                         <span>{{ label }}</span>
                         <span class="text-xs">{{ t('blogAdmin.posts.translations.create') }}</span>
@@ -210,7 +215,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Link, useForm, useHttp } from '@inertiajs/vue3';
+import { Link, router, useForm, useHttp } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import Layout from '../Layout.vue';
 
@@ -251,6 +256,11 @@ const props = withDefaults(defineProps<{
 const { adminUrl, apiUrl } = useBlogRoutes();
 const translation = (language: string) => (props.translations ?? []).find((item) => item.language === language);
 const createTranslation = (language: string) => form.post(adminUrl(`posts/${props.post.id}/translations/${language}`));
+const deleteTranslation = (translation: { id: number; language: string }): void => {
+    if (confirm(t('blogAdmin.posts.deleteConfirm'))) {
+        router.delete(adminUrl(`posts/${translation.id}`));
+    }
+};
 const translationOptions = computed(() => Object.entries(props.locales).filter(([language]) => language !== props.post.language));
 const hasMultipleLocales = computed(() => translationOptions.value.length > 0);
 const originalLanguageLabel = computed(() => props.locales[props.originalLanguage] ?? props.originalLanguage);

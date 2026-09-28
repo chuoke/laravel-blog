@@ -12,6 +12,13 @@ class PostUpdate
     public function execute(Post $post, PostUpdateData $data): Post
     {
         $updatedPost = DB::transaction(function () use ($data, $post): Post {
+            if ($post->isOriginal() && $data->language !== null && $data->language !== $post->language) {
+                Post::onlyTrashed()
+                    ->where('article_id', $post->article_id)
+                    ->where('language', $data->language)
+                    ->forceDelete();
+            }
+
             $updateAttributes = array_filter([
                 'title' => $data->title,
                 'summary' => $data->summary,
