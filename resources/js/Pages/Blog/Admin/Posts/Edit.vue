@@ -22,7 +22,7 @@
                     {{ t('blogAdmin.posts.translations.title') }}
                     <svg class="size-4 transition-transform" :class="{ 'rotate-180': translationsExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
                 </button>
-                <button v-if="post.status === 'draft'" type="button" @click="submit" class="btn btn-outline border-base-300 text-base-content hover:bg-base-300 hover:border-base-300" :disabled="form.processing">
+                <button v-if="post.status === 'draft'" type="button" @click="submit()" class="btn btn-outline border-base-300 text-base-content hover:bg-base-300 hover:border-base-300" :disabled="form.processing">
                     {{ t('blogAdmin.posts.saveDraft') }}
                 </button>
                 <button type="button" @click="submit(post.status === 'draft' ? 'published' : undefined)" class="btn btn-primary" :disabled="form.processing">

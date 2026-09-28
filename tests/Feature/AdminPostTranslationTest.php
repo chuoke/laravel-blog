@@ -131,6 +131,12 @@ it('publishes a draft while saving its current edits', function () {
         ->published_at->not->toBeNull();
 });
 
+it('does not pass a click event as a draft save status', function () {
+    $page = file_get_contents(__DIR__.'/../../resources/js/Pages/Blog/Admin/Posts/Edit.vue');
+
+    expect($page)->toContain('@click="submit()"');
+});
+
 it('preserves a published date when saving published post edits', function () {
     $publishedAt = now()->subHour()->startOfSecond();
     $post = (new PostCreate())->execute(new PostCreateData(
