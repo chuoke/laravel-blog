@@ -2,14 +2,18 @@
 
 use Chuoke\Blog\Actions\AttachmentUpload;
 use Chuoke\Blog\Actions\BlogContentReview;
+use Chuoke\Blog\Actions\BlogContentTranslate;
 use Chuoke\Blog\Actions\BlogCoverAttachmentStore;
 use Chuoke\Blog\Actions\BlogCoverGenerate;
 use Chuoke\Blog\Actions\BlogSummaryGenerate;
 use Chuoke\Blog\Ai\BlogContentReviewAgent;
+use Chuoke\Blog\Ai\BlogContentTranslateAgent;
 use Chuoke\Blog\Ai\BlogSummaryGenerateAgent;
 use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Contracts\BlogAiAuthorizer;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
+use Chuoke\Blog\Actions\PostCreate;
+use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Models\Attachment;
 use Illuminate\Foundation\Auth\User;
@@ -74,6 +78,86 @@ it('returns a structured editorial review', function (): void {
             'strengths' => ['Clear topic'],
             'issues' => ['Add sources for the central claim'],
         ]);
+});
+
+it('translates an article with the configured text provider and model', function (): void {
+    config(['blog.ai.prompts.translation' => 'Keep product names in English.']);
+    BlogContentTranslateAgent::fake([[
+        'title' => 'Translated title',
+        'summary' => 'Translated summary',
+        'content' => '# Translated content',
+    ]]);
+
+    $translation = (new BlogContentTranslate)->execute([
+        'title' => 'Original title',
+        'summary' => 'Original summary',
+        'content' => '# Original content',
+        'sourceLanguage' => 'en',
+        'targetLanguage' => 'zh_CN',
+    ]);
+
+    expect($translation)->toBe([
+        'title' => 'Translated title',
+        'summary' => 'Translated summary',
+        'content' => '# Translated content',
+    ]);
+
+    BlogContentTranslateAgent::assertPrompted(
+        fn ($prompt): bool => str_contains($prompt->prompt, 'Source language: en')
+            && str_contains($prompt->prompt, 'Target language: zh_CN')
+            && $prompt->provider instanceof OpenAiProvider
+            && $prompt->model === 'gpt-5-mini',
+    );
+
+    expect((new BlogContentTranslateAgent)->instructions())
+        ->toContain('Keep product names in English.');
+});
+
+it('translates from the original article for a translation draft', function (): void {
+    config(['blog.author_model' => User::class]);
+    $original = (new PostCreate)->execute(new PostCreateData(
+        title: 'Original title',
+        summary: 'Original summary',
+        content: '# Original content',
+        authorId: 1,
+        language: 'en',
+    ));
+    $translation = (new PostCreate)->execute(new PostCreateData(
+        title: 'Existing translation',
+        content: 'Existing content',
+        authorId: 1,
+        articleId: $original->id,
+        language: 'zh_CN',
+    ));
+
+    BlogContentTranslateAgent::fake([[
+        'title' => '翻译标题',
+        'summary' => '翻译摘要',
+        'content' => '# 翻译内容',
+    ]]);
+
+    $user = new User;
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $this->actingAs($user)
+        ->post(route('blog.admin.posts.ai.translate', $original->getKey()))
+        ->assertUnprocessable();
+
+    $response = $this->actingAs($user)
+        ->post(route('blog.admin.posts.ai.translate', $translation->getKey()));
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'title' => '翻译标题',
+            'summary' => '翻译摘要',
+            'content' => '# 翻译内容',
+        ]);
+
+    BlogContentTranslateAgent::assertPrompted(
+        fn ($prompt): bool => $prompt->contains('Original title')
+            && $prompt->contains('Target language: zh_CN'),
+    );
 });
 
 it('generates and stores a resized cover with the configured image provider and model', function (): void {

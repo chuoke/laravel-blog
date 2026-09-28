@@ -36,6 +36,9 @@ Route::prefix(config('blog.admin_route_prefix', 'admin/blog'))
 
         Route::put('posts/{post}/pin', [PostController::class, 'togglePin'])->name('posts.pin');
         Route::post('posts/{post}/translations/{language}', [PostController::class, 'createTranslation'])->name('posts.translations.store');
+        Route::post('posts/{post}/ai/translate', [$aiController, 'translate'])
+            ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.middleware', [])])
+            ->name('posts.ai.translate');
         Route::resource('posts', PostController::class);
         Route::resource('categories', CategoryController::class)->except(['show']);
         Route::resource('tags', TagController::class)->except(['show']);

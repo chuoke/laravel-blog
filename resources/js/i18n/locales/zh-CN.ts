@@ -135,6 +135,8 @@ const zhCN = {
     ai: {
       generate: "AI 生成",
       generating: "生成中...",
+      translate: "AI 翻译",
+      translating: "翻译中...",
       generateCover: "AI 生成封面",
       review: "AI 审核",
       runReview: "审核内容",
@@ -148,6 +150,7 @@ const zhCN = {
       summaryFailed: "AI 摘要生成失败，请稍后再试。",
       coverFailed: "AI 封面生成失败，请稍后再试。",
       reviewFailed: "AI 内容审核失败，请稍后再试。",
+      translationFailed: "AI 翻译失败，请稍后再试。",
       coverProcessing: "正在优化封面图片...",
       dependencyMissing: "博客 AI 需要 laravel/ai 和 PHP 8.3 以上版本。请执行：composer require laravel/ai",
     },

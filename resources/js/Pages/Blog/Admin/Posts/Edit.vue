@@ -14,6 +14,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <button v-if="aiEnabled && post.is_translation" type="button" class="btn btn-ghost btn-sm" :disabled="translationHttp.processing" @click="translateContent">
+                    <span v-if="translationHttp.processing" class="loading loading-spinner loading-xs"></span>
+                    {{ translationHttp.processing ? t('blogAdmin.ai.translating') : t('blogAdmin.ai.translate') }}
+                </button>
                 <button v-if="hasMultipleLocales" type="button" class="btn btn-ghost btn-sm" :aria-expanded="translationsExpanded" aria-controls="translation-options" @click="translationsExpanded = !translationsExpanded">
                     {{ t('blogAdmin.posts.translations.title') }}
                     <svg class="size-4 transition-transform" :class="{ 'rotate-180': translationsExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
@@ -271,6 +275,7 @@ const coverUploadHttp = useHttp({ file: null as File | null });
 const summaryHttp = useHttp({ title: '', content: '', language: '' });
 const coverHttp = useHttp({ title: '', content: '', language: '' });
 const reviewHttp = useHttp({ title: '', content: '', language: '' });
+const translationHttp = useHttp({});
 const reviewResult = ref<ReviewResult | null>(null);
 
 const editorTheme = computed(() => {
@@ -362,6 +367,17 @@ const reviewContent = async (): Promise<void> => {
         reviewResult.value = await reviewHttp.post(adminUrl('ai/review')) as ReviewResult;
     } catch {
         alert(t('blogAdmin.ai.reviewFailed'));
+    }
+};
+
+const translateContent = async (): Promise<void> => {
+    try {
+        const translation = await translationHttp.post(adminUrl(`posts/${props.post.id}/ai/translate`)) as { title: string; summary: string; content: string };
+        form.title = translation.title;
+        form.summary = translation.summary;
+        form.content = translation.content;
+    } catch {
+        alert(t('blogAdmin.ai.translationFailed'));
     }
 };
 

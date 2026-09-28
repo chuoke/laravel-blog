@@ -133,6 +133,8 @@ const en = {
     ai: {
       generate: "Generate with AI",
       generating: "Generating...",
+      translate: "Translate with AI",
+      translating: "Translating...",
       generateCover: "Generate cover with AI",
       review: "AI review",
       runReview: "Review content",
@@ -146,6 +148,7 @@ const en = {
       summaryFailed: "Unable to generate a summary. Please try again.",
       coverFailed: "Unable to generate a cover. Please try again.",
       reviewFailed: "Unable to review this content. Please try again.",
+      translationFailed: "Unable to translate this content. Please try again.",
       coverProcessing: "Optimizing cover image...",
       dependencyMissing: "Blog AI requires laravel/ai and PHP 8.3+. Run: composer require laravel/ai",
     },

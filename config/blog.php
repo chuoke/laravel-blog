@@ -203,6 +203,7 @@ return [
             'summary' => null,
             'review' => null,
             'cover' => null,
+            'translation' => null,
         ],
         'controller' => AiController::class,
     ],
