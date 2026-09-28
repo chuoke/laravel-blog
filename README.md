@@ -17,7 +17,8 @@ A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admi
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.3+
+- GD with WebP support (for cover upload and generation)
 - Laravel 12 or 13
 
 ## Installation
@@ -60,6 +61,64 @@ createInertiaApp({
 });
 ```
 
+### Admin Layout and Page Overrides
+
+The package admin pages use the package layout by default. Keep that layout when the host does not need a custom page.
+
+To override selected pages, resolve a host page first and fall back to the package source. A host page at the same path replaces only that page. For example, `resources/js/admin-blog/pages/Blog/Admin/Posts/Edit.vue` replaces the package edit screen while every other page still comes from the package.
+
+```ts
+import { createInertiaApp } from '@inertiajs/vue3';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import type { DefineComponent } from 'vue';
+
+const localPages = import.meta.glob<DefineComponent>('./pages/**/*.vue');
+const packagePages = import.meta.glob<DefineComponent>(
+    '../../../vendor/chuoke/laravel-blog/resources/js/Pages/**/*.vue',
+);
+
+createInertiaApp({
+    resolve: async (name) => {
+        const localPath = `./pages/${name}.vue`;
+        const packagePath = `../../../vendor/chuoke/laravel-blog/resources/js/Pages/${name}.vue`;
+
+        return await resolvePageComponent(
+            localPages[localPath] ? localPath : packagePath,
+            { ...localPages, ...packagePages },
+        );
+    },
+    // setup omitted
+});
+```
+
+To replace the layout for every resolved page, import the host layout and assign it before returning the resolved page. This also replaces layouts declared by package pages.
+
+```ts
+import HostAdminLayout from './layouts/HostAdminLayout.vue';
+
+const page = await resolvePageComponent(path, pages);
+page.default.layout = HostAdminLayout;
+
+return page;
+```
+
+### Admin Styles
+
+The admin panel uses Tailwind and DaisyUI utility classes. The package deliberately does not register a CSS entry in the host application, so add one to the host build and let Tailwind scan both the host overrides and the package pages:
+
+```css
+/* resources/css/admin-blog.css */
+@import 'tailwindcss' source(none);
+
+@plugin "daisyui";
+
+@source '../js/admin-blog';
+@source '../../vendor/chuoke/laravel-blog/resources/js';
+@source '../views/admin-blog.blade.php';
+```
+
+Load that entry from the admin Blade view, for example `@vite('resources/js/admin-blog/app.ts')` after importing the stylesheet in `app.ts`. Adjust the relative paths for your project. If you publish `blog-assets`, scan `resources/js/Pages/Blog` instead of the package path. Missing either source path can cause Tailwind to omit classes used by the corresponding pages.
+
 ### Publishing Individually
 
 ```bash
@@ -69,7 +128,7 @@ php artisan vendor:publish --tag=blog-config
 # Migrations only
 php artisan vendor:publish --tag=blog-migrations
 
-# Admin Vue/CSS assets only
+# Admin Vue, i18n, and compiled theme CSS assets
 php artisan vendor:publish --tag=blog-assets
 
 # Front-end theme views (for customization)
@@ -143,6 +202,18 @@ Every theme uses DaisyUI semantic tokens (`text-primary`, `bg-base-100`, etc.), 
 ```
 
 See all available themes: [daisyui.com/docs/themes](https://daisyui.com/docs/themes/)
+
+### Theme Style Loading
+
+The bundled default theme loads its precompiled Tailwind and DaisyUI stylesheet from the package layout, so it works without adding a Vite entry or publishing assets. This keeps the public theme independent from the host application's CSS bundle.
+
+When using a host layout (`'layout' => 'layouts.app'`) or replacing a theme layout, the host owns style loading. Include the host CSS entry with `@vite(...)` and make its Tailwind entry scan the blog templates. For package templates:
+
+```css
+@source '../../vendor/chuoke/laravel-blog/resources/views/themes/**/*.blade.php';
+```
+
+For published templates, scan `resources/views/vendor/blog/themes/**/*.blade.php` instead. Include any fonts and theme-specific CSS required by the layout you replace. This is also the right setup when creating a custom theme.
 
 ### Creating a Custom Theme
 
@@ -257,6 +328,62 @@ php artisan blog:install
 ```
 
 The admin routes use `blog.admin_middleware`; by default this is `['web', 'auth']`, so new posts are assigned to the current authenticated user.
+
+### AI Capabilities
+
+AI is off by default. Enable it only after installing and configuring [`laravel/ai`](https://github.com/laravel/ai) and its provider credentials:
+
+```bash
+composer require laravel/ai
+```
+
+```php
+// config/blog.php
+'ai' => [
+    'enabled' => true,
+    'text' => ['provider' => 'openai', 'model' => 'gpt-5-mini'],
+    'image' => ['provider' => 'openai', 'model' => 'gpt-image-1'],
+],
+```
+
+The AI routes are unavailable while `enabled` is `false`. They still inherit `blog.admin_middleware`; applications that need a separate capability check can set `ai.authorizer` to a class implementing `Chuoke\Blog\Contracts\BlogAiAuthorizer`. Return `false` to deny a request.
+
+```php
+use Chuoke\Blog\Contracts\BlogAiAuthorizer;
+use Illuminate\Http\Request;
+
+class AuthorizeBlogAi implements BlogAiAuthorizer
+{
+    public function authorize(Request $request): bool
+    {
+        return $request->user()->can('use-blog-ai');
+    }
+}
+```
+
+```php
+'ai' => [
+    'enabled' => true,
+    'authorizer' => App\Blog\AuthorizeBlogAi::class,
+],
+```
+
+### Attachment Paths
+
+`attachment.path_generator` accepts a class implementing `Chuoke\Blog\Contracts\AttachmentPathGenerator`. It receives the original name, extension, and optional directory, and must return a unique path relative to the configured disk. The default uses UUIDs; a NanoID-and-date strategy is a good host-specific alternative.
+
+### Upgrading Published Admin Assets
+
+Published Vue files are intentionally never overwritten by `blog:install` unless `--force` is supplied. Do not use `--force` to upgrade a customized admin panel.
+
+For the upgrade-friendly setup, keep only intentional page overrides in a host directory and resolve every other page from `vendor/chuoke/laravel-blog/resources/js/Pages`, as shown in [Admin Layout and Page Overrides](#admin-layout-and-page-overrides). Existing published files can remain in place until their customizations have been moved; they are ignored once the resolver points to the package source.
+
+For package updates, publish only new migrations, review the package `config/blog.php` for new keys, then run migrations:
+
+```bash
+php artisan vendor:publish --tag=blog-migrations
+php artisan migrate
+```
 
 ## Database
 

@@ -51,6 +51,7 @@ class PostController extends Controller
             'categories' => Category::select('id', 'name')->get(),
             'tags' => Tag::select('id', 'name')->get(),
             'locales' => config('blog.supported_locales', ['en' => 'English']),
+            ...$this->aiProps(),
         ]);
     }
 
@@ -93,7 +94,18 @@ class PostController extends Controller
             'locales' => config('blog.supported_locales', ['en' => 'English']),
             'translations' => $post->siblings()->select('id', 'language')->get(),
             'originalLanguage' => $post->isTranslation() ? $post->original()->value('language') : $post->language,
+            ...$this->aiProps(),
         ]);
+    }
+
+    private function aiProps(): array
+    {
+        $enabled = config('blog.ai.enabled', false);
+
+        return [
+            'aiEnabled' => $enabled && class_exists('Laravel\\Ai\\Ai'),
+            'aiDependencyMissing' => $enabled && ! class_exists('Laravel\\Ai\\Ai'),
+        ];
     }
 
     public function createTranslation(Post $post, string $language, PostCreate $action)

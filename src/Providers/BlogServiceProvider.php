@@ -2,8 +2,16 @@
 
 namespace Chuoke\Blog\Providers;
 
+use Chuoke\Blog\Actions\BlogContentReview;
+use Chuoke\Blog\Actions\BlogCoverGenerate;
+use Chuoke\Blog\Actions\BlogSummaryGenerate;
 use Chuoke\Blog\BlogManager;
 use Chuoke\Blog\Console\Commands\InstallCommand;
+use Chuoke\Blog\Contracts\AttachmentPathGenerator;
+use Chuoke\Blog\Contracts\BlogContentReviewer;
+use Chuoke\Blog\Contracts\BlogCoverGenerator;
+use Chuoke\Blog\Contracts\BlogSummaryGenerator;
+use Chuoke\Blog\Support\DefaultAttachmentPathGenerator;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
 
@@ -24,7 +32,7 @@ class BlogServiceProvider extends ServiceProvider
         // therefore a fresh cache - for each request/job instead of leaking
         // stale data across them.
         $this->app->scoped(BlogManager::class, function ($app) {
-            return new BlogManager();
+            return new BlogManager;
         });
 
         $this->registerActions();
@@ -115,8 +123,10 @@ class BlogServiceProvider extends ServiceProvider
      */
     protected function registerActions(): void
     {
-        // Actions will be bound here. By default they are self-bound,
-        // but explicit binding allows the host app to easily override them.
+        $this->app->bind(AttachmentPathGenerator::class, fn () => app(config('blog.attachment.path_generator', DefaultAttachmentPathGenerator::class)));
+        $this->app->bind(BlogSummaryGenerator::class, BlogSummaryGenerate::class);
+        $this->app->bind(BlogContentReviewer::class, BlogContentReview::class);
+        $this->app->bind(BlogCoverGenerator::class, BlogCoverGenerate::class);
     }
 
     /**

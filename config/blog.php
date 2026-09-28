@@ -1,5 +1,7 @@
 <?php
 
+use Chuoke\Blog\Http\Admin\Controllers\AiController;
+use Chuoke\Blog\Support\DefaultAttachmentPathGenerator;
 use Chuoke\Blog\Support\Nanoid;
 
 return [
@@ -170,6 +172,7 @@ return [
     'attachment' => [
         'disk' => 'public',
         'directory' => 'blog/attachments',
+        'path_generator' => DefaultAttachmentPathGenerator::class,
         'max_size' => 10240, // KB
 
         // Only these file extensions may be uploaded. Keep this list to
@@ -180,5 +183,27 @@ return [
             'mp3', 'wav', 'ogg',
             'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip',
         ],
+    ],
+
+    'ai' => [
+        // Requires laravel/ai (and PHP 8.3 or later) when enabled.
+        'enabled' => false,
+        'authorizer' => null,
+        'middleware' => ['throttle:10,1'],
+        'image_middleware' => ['throttle:3,1'],
+        'text' => [
+            'provider' => null,
+            'model' => null,
+        ],
+        'image' => [
+            'provider' => null,
+            'model' => null,
+        ],
+        'prompts' => [
+            'summary' => null,
+            'review' => null,
+            'cover' => null,
+        ],
+        'controller' => AiController::class,
     ],
 ];

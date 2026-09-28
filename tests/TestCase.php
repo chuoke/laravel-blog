@@ -5,6 +5,7 @@ namespace Chuoke\Blog\Tests;
 use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Providers\BlogServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
+use Laravel\Ai\AiServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -19,6 +20,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
+            AiServiceProvider::class,
             BlogServiceProvider::class,
         ];
     }

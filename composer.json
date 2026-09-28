@@ -10,7 +10,8 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
+        "ext-gd": "*",
         "illuminate/support": "^12.0|^13.0",
         "inertiajs/inertia-laravel": "^2.0|^3.0",
         "league/commonmark": "^2.4",
@@ -20,7 +21,8 @@
         "orchestra/testbench": "^10.0",
         "phpunit/phpunit": "^11.0",
         "pestphp/pest": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "laravel/ai": "^0.11"
     },
     "autoload": {
         "psr-4": {
@@ -45,6 +47,9 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "suggest": {
+        "laravel/ai": "Required when blog.ai.enabled is true."
+    },
     "config": {
         "allow-plugins": {
             "pestphp/pest-plugin": true

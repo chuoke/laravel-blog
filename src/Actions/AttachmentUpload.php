@@ -2,18 +2,29 @@
 
 namespace Chuoke\Blog\Actions;
 
+use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Dtos\AttachmentCreateData;
 use Chuoke\Blog\Models\Attachment;
+use Chuoke\Blog\Support\AttachmentPath;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class AttachmentUpload
 {
     public function execute(UploadedFile $file, ?string $directory = null, ?string $disk = null): Attachment
     {
         $disk = $disk ?? config('blog.attachment.disk', 'public');
-        $directory = $directory ?? config('blog.attachment.directory', 'blog/attachments');
+        $path = AttachmentPath::normalize(app(AttachmentPathGenerator::class)->generate(
+            $file->getClientOriginalName(),
+            $file->getClientOriginalExtension(),
+            $directory,
+        ));
 
-        $path = $file->store($directory, $disk);
+        $storedPath = Storage::disk($disk)->putFileAs(dirname($path) === '.' ? '' : dirname($path), $file, basename($path));
+
+        if ($storedPath === false) {
+            throw new \RuntimeException('Failed to store blog attachment.');
+        }
 
         $width = null;
         $height = null;
@@ -27,7 +38,7 @@ class AttachmentUpload
         }
 
         $data = new AttachmentCreateData(
-            path: $path,
+            path: $storedPath,
             fileName: $file->getClientOriginalName(),
             extension: $file->getClientOriginalExtension(),
             type: $this->resolveType($file->getMimeType()),
