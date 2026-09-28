@@ -22,9 +22,12 @@
                     {{ t('blogAdmin.posts.translations.title') }}
                     <svg class="size-4 transition-transform" :class="{ 'rotate-180': translationsExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
                 </button>
-                <button type="button" @click="submit" class="btn btn-primary" :disabled="form.processing">
+                <button v-if="post.status === 'draft'" type="button" @click="submit" class="btn btn-outline border-base-300 text-base-content hover:bg-base-300 hover:border-base-300" :disabled="form.processing">
+                    {{ t('blogAdmin.posts.saveDraft') }}
+                </button>
+                <button type="button" @click="submit(post.status === 'draft' ? 'published' : undefined)" class="btn btn-primary" :disabled="form.processing">
                     <span v-if="form.processing" class="loading loading-spinner loading-sm"></span>
-                    {{ t('blogAdmin.common.saveChanges') }}
+                    {{ post.status === 'draft' ? t('blogAdmin.posts.publish') : t('blogAdmin.common.saveChanges') }}
                 </button>
             </div>
         </header>
@@ -260,6 +263,7 @@ const form = useForm({
     tag_ids: props.post.tags ? props.post.tags.map((t: Tag) => t.id) : [] as number[],
     language: props.post.language || 'en',
     cover_image_id: props.post.cover_image ? props.post.cover_image.id : null as number | null,
+    status: null as 'published' | null,
 });
 
 const coverImageUrl = ref<string | null>(props.post.cover_image ? props.post.cover_image.url : null);
@@ -428,7 +432,9 @@ const uploadCoverAttachment = async (file: File): Promise<AttachmentResponse> =>
     return attachment;
 };
 
-const submit = () => {
+const submit = (status?: 'published') => {
+    form.status = status ?? null;
+
     form.put(adminUrl(`posts/${props.post.id}`), {
         preserveScroll: true,
         onSuccess: () => {
@@ -436,6 +442,9 @@ const submit = () => {
             setTimeout(() => {
                 saved.value = false;
             }, 3000);
+        },
+        onFinish: () => {
+            form.status = null;
         },
     });
 };

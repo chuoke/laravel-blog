@@ -183,6 +183,10 @@ it('generates and stores a resized cover with the configured image provider and 
     );
 });
 
+it('provides a longer default timeout for AI cover generation', function (): void {
+    expect(config('blog.ai.image.timeout'))->toBe(180);
+});
+
 it('optimizes a manually uploaded cover without requiring AI', function (): void {
     Storage::fake('public');
 

@@ -198,6 +198,7 @@ return [
         'image' => [
             'provider' => null,
             'model' => null,
+            'timeout' => 180,
         ],
         'prompts' => [
             'summary' => null,

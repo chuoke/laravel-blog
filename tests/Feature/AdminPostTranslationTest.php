@@ -110,6 +110,47 @@ it('does not allow a translation language to change after creation', function ()
     expect($translation->fresh()->language)->toBe('zh');
 });
 
+it('publishes a draft while saving its current edits', function () {
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Draft post',
+        content: 'Draft content',
+        authorId: 1,
+        language: 'en',
+    ));
+
+    $this->put(route('blog.admin.posts.update', $post->getKey()), [
+        'title' => 'Published post',
+        'content' => 'Published content',
+        'status' => 'published',
+    ])->assertRedirect(route('blog.admin.posts.edit', $post->getKey()));
+
+    expect($post->fresh())
+        ->title->toBe('Published post')
+        ->content->toBe('Published content')
+        ->status->toBe('published')
+        ->published_at->not->toBeNull();
+});
+
+it('preserves a published date when saving published post edits', function () {
+    $publishedAt = now()->subHour()->startOfSecond();
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Published post',
+        content: 'Published content',
+        authorId: 1,
+        language: 'en',
+        status: 'published',
+        publishedAt: $publishedAt->toDateTimeString(),
+    ));
+
+    $this->put(route('blog.admin.posts.update', $post->getKey()), [
+        'title' => 'Updated published post',
+    ])->assertRedirect(route('blog.admin.posts.edit', $post->getKey()));
+
+    expect($post->fresh())
+        ->status->toBe('published')
+        ->published_at->toDateTimeString()->toBe($publishedAt->toDateTimeString());
+});
+
 it('does not allow the API to change a translation language', function () {
     $original = (new PostCreate())->execute(new PostCreateData(
         title: 'Original post',

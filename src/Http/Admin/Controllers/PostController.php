@@ -142,6 +142,7 @@ class PostController extends Controller
     public function update(Request $request, Post $post, PostUpdate $action)
     {
         $validated = $request->validate([
+            'status' => ['nullable', Rule::in(['published'])],
             'language' => $post->isTranslation()
                 ? ['nullable']
                 : [
@@ -163,6 +164,7 @@ class PostController extends Controller
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
             language: $post->isTranslation() ? null : ($validated['language'] ?? null),
+            status: $validated['status'] ?? null,
         );
 
         $action->execute($post, $data);

@@ -23,7 +23,7 @@ class BlogCoverGenerate implements BlogCoverGenerator
         $image = Image::of($this->buildPrompt($data))
             ->landscape()
             ->quality('high')
-            ->timeout(60)
+            ->timeout(max(1, min(300, (int) config('blog.ai.image.timeout', 180))))
             ->generate($provider, $model)
             ->firstImage();
 
