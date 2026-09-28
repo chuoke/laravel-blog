@@ -8,6 +8,6 @@ class PostGet
 {
     public function execute(Post $post): Post
     {
-        return $post->load(['category', 'tags', 'author']);
+        return $post->load(['category', 'tags', 'author', 'coverImage']);
     }
 }

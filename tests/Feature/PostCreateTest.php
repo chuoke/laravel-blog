@@ -1,7 +1,9 @@
 <?php
 
 use Chuoke\Blog\Actions\PostCreate;
+use Chuoke\Blog\Actions\PostGet;
 use Chuoke\Blog\Dtos\PostCreateData;
+use Chuoke\Blog\Models\Attachment;
 use Chuoke\Blog\Models\Post;
 
 it('can create a post', function () {
@@ -55,4 +57,25 @@ it('can create a translation post sharing the same article_id', function () {
     expect($translation->article_id)->toBe($original->article_id);
     expect($translation->isTranslation())->toBeTrue();
     expect($original->fresh()->siblings)->toHaveCount(2);
+});
+
+it('loads the cover image when retrieving a post for editing', function () {
+    config(['blog.author_model' => \Illuminate\Foundation\Auth\User::class]);
+
+    $cover = Attachment::create([
+        'path' => 'blog/covers/cover.webp',
+        'file_name' => 'cover.webp',
+    ]);
+
+    $post = (new PostCreate)->execute(new PostCreateData(
+        title: 'Post with a cover',
+        content: 'Content',
+        authorId: 1,
+        coverImageId: $cover->id,
+    ));
+
+    $post = (new PostGet)->execute($post);
+
+    expect($post->relationLoaded('coverImage'))->toBeTrue()
+        ->and($post->coverImage?->id)->toBe($cover->id);
 });
