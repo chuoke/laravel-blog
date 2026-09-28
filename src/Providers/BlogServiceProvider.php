@@ -13,7 +13,6 @@ use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Support\DefaultAttachmentPathGenerator;
 use Illuminate\Support\ServiceProvider;
-use Inertia\Inertia;
 
 class BlogServiceProvider extends ServiceProvider
 {
@@ -45,26 +44,11 @@ class BlogServiceProvider extends ServiceProvider
     {
         $this->loadTranslationsFrom(__DIR__.'/../../lang', 'blog');
 
-        $this->shareInertiaRoutes();
         $this->configurePublishing();
         $this->registerMigrations();
         $this->registerRoutes();
         $this->registerViews();
         $this->registerCommands();
-    }
-
-    protected function shareInertiaRoutes(): void
-    {
-        if (! class_exists(Inertia::class)) {
-            return;
-        }
-
-        Inertia::share('blog.routes', function (): array {
-            return [
-                'admin' => '/'.trim(config('blog.admin_route_prefix', 'admin/blog'), '/'),
-                'api' => '/'.trim(config('blog.api_route_prefix', 'api/blog'), '/'),
-            ];
-        });
     }
 
     protected function registerCommands(): void
