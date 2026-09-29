@@ -33,6 +33,7 @@ class BlogContentReview implements BlogContentReviewer
     private function buildPrompt(array $data): string
     {
         return implode(PHP_EOL, [
+            'Response language: '.app()->getLocale(),
             'Article language: '.($data['language'] ?: 'unspecified'),
             '<article-title>'.($data['title'] ?: 'Untitled').'</article-title>',
             '<article-content>'.($data['content'] ?: 'No content provided').'</article-content>',

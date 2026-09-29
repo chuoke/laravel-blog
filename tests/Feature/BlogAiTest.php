@@ -57,6 +57,8 @@ it('generates a summary using the configured text provider and model', function 
 });
 
 it('returns a structured editorial review', function (): void {
+    app()->setLocale('zh_CN');
+
     BlogContentReviewAgent::fake([[
         'score' => 82,
         'decision' => 'needs_revision',
@@ -80,9 +82,15 @@ it('returns a structured editorial review', function (): void {
         ]);
 
     expect((new BlogContentReviewAgent)->instructions())
+        ->toContain('supplied response language')
         ->toContain('people-first standards')
         ->toContain('Do not reward or penalize length, page count, or word count.')
         ->toContain('Reject search-ranking shortcuts.');
+
+    BlogContentReviewAgent::assertPrompted(
+        fn ($prompt): bool => str_contains($prompt->prompt, 'Response language: zh_CN')
+            && str_contains($prompt->prompt, 'Article language: en'),
+    );
 });
 
 it('translates an article with the configured text provider and model', function (): void {
