@@ -163,6 +163,12 @@ it('does not pass a click event as a draft save status', function () {
         ->toContain('@click="deleteTranslation(translation(code)!)"');
 });
 
+it('resets the edit form baseline after a successful save', function () {
+    $page = file_get_contents(__DIR__.'/../../resources/js/Pages/Blog/Admin/Posts/Edit.vue');
+
+    expect($page)->toContain("form.status = null;\n            form.defaults();");
+});
+
 it('preserves a published date when saving published post edits', function () {
     $publishedAt = now()->subHour()->startOfSecond();
     $post = (new PostCreate())->execute(new PostCreateData(

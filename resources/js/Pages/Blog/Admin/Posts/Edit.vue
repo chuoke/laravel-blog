@@ -448,13 +448,12 @@ const submit = (status?: 'published') => {
     form.put(adminUrl(`posts/${props.post.id}`), {
         preserveScroll: true,
         onSuccess: () => {
+            form.status = null;
+            form.defaults();
             saved.value = true;
             setTimeout(() => {
                 saved.value = false;
             }, 3000);
-        },
-        onFinish: () => {
-            form.status = null;
         },
     });
 };
