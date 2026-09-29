@@ -78,6 +78,11 @@ it('returns a structured editorial review', function (): void {
             'strengths' => ['Clear topic'],
             'issues' => ['Add sources for the central claim'],
         ]);
+
+    expect((new BlogContentReviewAgent)->instructions())
+        ->toContain('people-first standards')
+        ->toContain('Do not reward or penalize length, page count, or word count.')
+        ->toContain('Reject search-ranking shortcuts.');
 });
 
 it('translates an article with the configured text provider and model', function (): void {
