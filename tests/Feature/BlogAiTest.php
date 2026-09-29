@@ -192,6 +192,9 @@ it('generates and stores a resized cover with the configured image provider and 
     Image::assertGenerated(
         fn ($prompt): bool => $prompt->provider instanceof OpenAiProvider
             && $prompt->model === 'gpt-image-1'
+            && $prompt->contains('1536x1024 (3:2) landscape')
+            && $prompt->contains('specific article details rather than generic filler imagery')
+            && $prompt->contains('copyright-risk elements')
             && $prompt->contains('Use a warm editorial color palette.'),
     );
 });
