@@ -45,6 +45,6 @@ class PostList
 
         $query->orderByDesc($sortColumn)->orderByDesc('id');
 
-        return $query->paginate($data->perPage);
+        return $query->paginate($data->perPage)->withQueryString();
     }
 }
