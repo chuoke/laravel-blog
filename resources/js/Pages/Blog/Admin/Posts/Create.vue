@@ -75,7 +75,10 @@
                     
                     <div v-if="coverImageUrl" class="relative group rounded-xl overflow-hidden mb-3 border border-base-300 aspect-video bg-base-200 flex items-center justify-center">
                         <img :src="coverImageUrl" class="object-cover w-full h-full" />
-                        <div class="absolute inset-0 bg-base-content/60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                        <div class="absolute inset-0 bg-base-content/60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                            <a :href="coverImageUrl" target="_blank" rel="noopener" aria-label="Preview cover image" class="btn btn-sm btn-square btn-ghost text-base-100 hover:bg-base-100/20" @click.stop>
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                            </a>
                             <button @click="removeCover" type="button" class="btn btn-sm btn-error text-white">{{ t('blogAdmin.posts.remove') }}</button>
                         </div>
                     </div>
