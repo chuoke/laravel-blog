@@ -324,7 +324,6 @@ function largePng(): string
     ob_start();
     imagepng($image);
     $content = ob_get_clean();
-    imagedestroy($image);
 
     return $content;
 }

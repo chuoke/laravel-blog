@@ -109,12 +109,12 @@ class BlogCoverAttachmentStore
 
                 return [$best[0], $best[1], $best[2], $targetWidth, $targetHeight];
             } finally {
-                if ($resized !== $source) {
-                    imagedestroy($resized);
+                if (isset($resized) && $resized !== $source) {
+                    unset($resized);
                 }
             }
         } finally {
-            imagedestroy($source);
+            unset($source);
         }
     }
 
