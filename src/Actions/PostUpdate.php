@@ -28,6 +28,7 @@ class PostUpdate
                 'language' => $data->language,
                 'source_type' => $data->sourceType,
                 'source_url' => $data->sourceUrl,
+                'slug' => $data->slug,
             ], fn ($value) => $value !== null);
 
             if ($post->isTranslation()) {

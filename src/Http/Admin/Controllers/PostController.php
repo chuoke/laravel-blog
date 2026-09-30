@@ -61,6 +61,7 @@ class PostController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'summary' => 'nullable|string',
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('blog_posts', 'slug')],
             'status' => 'nullable|string|in:draft,published',
             'language' => ['nullable', 'string', 'max:10', Rule::in(array_keys(config('blog.supported_locales', ['en' => 'English'])))],
         ]);
@@ -78,6 +79,7 @@ class PostController extends Controller
             publishedAt: $status === 'published' ? now()->toDateTimeString() : null,
             coverImageId: $request->input('cover_image_id'),
             language: $validated['language'] ?? config('blog.locale', 'en'),
+            slug: $validated['slug'] ?? null,
         );
 
         $action->execute($data);
@@ -148,6 +150,7 @@ class PostController extends Controller
     {
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(['published'])],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('blog_posts', 'slug')->ignore($post->id)],
             'language' => $post->isTranslation()
                 ? ['nullable']
                 : [
@@ -171,6 +174,7 @@ class PostController extends Controller
             coverImageId: $request->input('cover_image_id'),
             language: $post->isTranslation() ? null : ($validated['language'] ?? null),
             status: $validated['status'] ?? null,
+            slug: $validated['slug'] ?? null,
         );
 
         $action->execute($post, $data);

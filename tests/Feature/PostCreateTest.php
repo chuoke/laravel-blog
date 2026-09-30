@@ -59,6 +59,25 @@ it('can create a translation post sharing the same article_id', function () {
     expect($original->fresh()->siblings)->toHaveCount(2);
 });
 
+it('uses a manual slug or a readable fallback for non-Latin titles', function () {
+    $action = new PostCreate();
+
+    $manual = $action->execute(new PostCreateData(
+        title: 'Manual slug post',
+        content: 'Content',
+        authorId: 1,
+        slug: 'custom-product-guide',
+    ));
+    $fallback = $action->execute(new PostCreateData(
+        title: '中文文章标题',
+        content: 'Content',
+        authorId: 1,
+    ));
+
+    expect($manual->slug)->toBe('custom-product-guide')
+        ->and($fallback->slug)->toStartWith('post-');
+});
+
 it('loads the cover image when retrieving a post for editing', function () {
     config(['blog.author_model' => \Illuminate\Foundation\Auth\User::class]);
 

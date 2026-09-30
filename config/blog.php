@@ -202,6 +202,7 @@ return [
         ],
         'prompts' => [
             'summary' => null,
+            'slug' => null,
             'review' => null,
             'cover' => null,
             'translation' => null,

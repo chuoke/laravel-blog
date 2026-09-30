@@ -15,6 +15,7 @@ readonly class PostUpdateData
         public ?string $status = null,
         public ?string $sourceType = null,
         public ?string $sourceUrl = null,
+        public ?string $slug = null,
     ) {
     }
 }

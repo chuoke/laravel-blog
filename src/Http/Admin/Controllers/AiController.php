@@ -5,6 +5,7 @@ namespace Chuoke\Blog\Http\Admin\Controllers;
 use Chuoke\Blog\Contracts\BlogContentReviewer;
 use Chuoke\Blog\Contracts\BlogContentTranslator;
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
+use Chuoke\Blog\Contracts\BlogSlugGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Http\Admin\Requests\BlogAiContentRequest;
@@ -25,6 +26,19 @@ class AiController extends Controller
             report($e);
 
             return response()->json(['message' => 'Unable to generate a blog summary. Please try again.'], 500);
+        }
+    }
+
+    public function slug(BlogAiContentRequest $request, BlogSlugGenerator $generate): JsonResponse
+    {
+        try {
+            return response()->json(['slug' => $generate->execute($request->contentData())]);
+        } catch (BlogAiUnavailable $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Unable to generate a blog slug. Please try again.'], 500);
         }
     }
 

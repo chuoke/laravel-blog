@@ -19,6 +19,7 @@ readonly class PostCreateData
         public ?string $sourceUrl = null,
         public string $language = 'en',
         public ?int $articleId = null,
+        public ?string $slug = null,
     ) {
     }
 }

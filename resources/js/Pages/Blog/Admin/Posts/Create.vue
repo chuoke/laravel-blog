@@ -31,6 +31,18 @@
                     <label class="block text-sm font-bold text-base-content mb-2">{{ t('blogAdmin.posts.title') }}</label>
                     <input v-model="form.title" type="text" :placeholder="t('blogAdmin.posts.enterTitle')" class="w-full bg-base-200 border-0 rounded-xl px-4 py-3 text-lg font-medium focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all placeholder:font-normal placeholder:text-base-content/40" />
                     <div v-if="form.errors.title" class="text-error text-sm mt-2">{{ form.errors.title }}</div>
+                    <div class="mt-4">
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <label class="text-sm font-bold text-base-content">{{ t('blogAdmin.posts.slug') }}</label>
+                            <button v-if="aiEnabled" type="button" class="btn btn-ghost btn-xs" :disabled="slugHttp.processing" @click="generateSlug">
+                                <span v-if="slugHttp.processing" class="loading loading-spinner loading-xs"></span>
+                                {{ slugHttp.processing ? t('blogAdmin.ai.generating') : t('blogAdmin.ai.generateSlug') }}
+                            </button>
+                        </div>
+                        <input v-model="form.slug" type="text" :placeholder="t('blogAdmin.posts.slugPlaceholder')" class="w-full bg-base-200 border-0 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all" />
+                        <p class="mt-1.5 text-xs text-base-content/60">{{ t('blogAdmin.posts.slugHelp') }}</p>
+                        <div v-if="form.errors.slug" class="mt-2 text-sm text-error">{{ form.errors.slug }}</div>
+                    </div>
                 </div>
 
                 <!-- Markdown Editor Card -->
@@ -218,6 +230,7 @@ const form = useForm({
     category_id: null as number | null,
     tag_ids: [] as number[],
     language: 'en',
+    slug: '',
     cover_image_id: null as number | null,
     status: 'draft',
 });
@@ -231,6 +244,7 @@ const uploadHttp = useHttp({
 });
 const coverUploadHttp = useHttp({ file: null as File | null });
 const summaryHttp = useHttp({ title: '', content: '', language: '' });
+const slugHttp = useHttp({ title: '', content: '', language: '' });
 const coverHttp = useHttp({ title: '', content: '', language: '' });
 const reviewHttp = useHttp({ title: '', content: '', language: '' });
 const reviewResult = ref<ReviewResult | null>(null);
@@ -303,6 +317,17 @@ const generateSummary = async (): Promise<void> => {
         form.summary = result.summary;
     } catch {
         alert(t('blogAdmin.ai.summaryFailed'));
+    }
+};
+
+const generateSlug = async (): Promise<void> => {
+    fillAiContent(slugHttp);
+
+    try {
+        const result = await slugHttp.post(adminUrl('ai/slug')) as { slug: string };
+        form.slug = result.slug;
+    } catch {
+        alert(t('blogAdmin.ai.slugFailed'));
     }
 };
 

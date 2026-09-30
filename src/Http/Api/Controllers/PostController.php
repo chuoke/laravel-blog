@@ -41,6 +41,7 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('blog_posts', 'slug')],
             'author_id' => $authenticatedAuthorId ? 'nullable' : 'required',
         ]);
 
@@ -50,6 +51,7 @@ class PostController extends Controller
             authorId: $authenticatedAuthorId ?? $validated['author_id'],
             categoryId: $request->input('category_id'),
             tagIds: $request->input('tag_ids', []),
+            slug: $validated['slug'] ?? null,
         );
 
         $post = $action->execute($data);
@@ -65,6 +67,7 @@ class PostController extends Controller
     public function update(Request $request, Post $post, PostUpdate $action)
     {
         $validated = $request->validate([
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('blog_posts', 'slug')->ignore($post->id)],
             'language' => $post->isTranslation()
                 ? ['nullable']
                 : [
@@ -87,6 +90,7 @@ class PostController extends Controller
             tagIds: $request->input('tag_ids'),
             coverImageId: $request->input('cover_image_id'),
             language: $post->isTranslation() ? null : ($validated['language'] ?? null),
+            slug: $validated['slug'] ?? null,
         );
 
         $post = $action->execute($post, $data);

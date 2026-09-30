@@ -5,9 +5,11 @@ use Chuoke\Blog\Actions\BlogContentReview;
 use Chuoke\Blog\Actions\BlogContentTranslate;
 use Chuoke\Blog\Actions\BlogCoverAttachmentStore;
 use Chuoke\Blog\Actions\BlogCoverGenerate;
+use Chuoke\Blog\Actions\BlogSlugGenerate;
 use Chuoke\Blog\Actions\BlogSummaryGenerate;
 use Chuoke\Blog\Ai\BlogContentReviewAgent;
 use Chuoke\Blog\Ai\BlogContentTranslateAgent;
+use Chuoke\Blog\Ai\BlogSlugGenerateAgent;
 use Chuoke\Blog\Ai\BlogSummaryGenerateAgent;
 use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Contracts\BlogAiAuthorizer;
@@ -54,6 +56,28 @@ it('generates a summary using the configured text provider and model', function 
 
     expect((new BlogSummaryGenerateAgent)->instructions())
         ->toContain('Prefer a practical, calm editorial tone.');
+});
+
+it('generates a normalized slug using the configured text provider and model', function (): void {
+    config(['blog.ai.prompts.slug' => 'Prefer terms familiar to product discovery audiences.']);
+    BlogSlugGenerateAgent::fake([['slug' => 'AI Product Discovery Guide']]);
+
+    $slug = (new BlogSlugGenerate())->execute([
+        'title' => '产品发现指南',
+        'content' => 'A guide to discovering useful products.',
+        'language' => 'zh_CN',
+    ]);
+
+    expect($slug)->toBe('ai-product-discovery-guide');
+
+    BlogSlugGenerateAgent::assertPrompted(
+        fn ($prompt): bool => str_contains($prompt->prompt, 'Article language: zh_CN')
+            && $prompt->provider instanceof OpenAiProvider
+            && $prompt->model === 'gpt-5-mini',
+    );
+
+    expect((new BlogSlugGenerateAgent())->instructions())
+        ->toContain('Prefer terms familiar to product discovery audiences.');
 });
 
 it('returns a structured editorial review', function (): void {

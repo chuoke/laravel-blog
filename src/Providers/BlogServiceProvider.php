@@ -5,6 +5,7 @@ namespace Chuoke\Blog\Providers;
 use Chuoke\Blog\Actions\BlogContentReview;
 use Chuoke\Blog\Actions\BlogContentTranslate;
 use Chuoke\Blog\Actions\BlogCoverGenerate;
+use Chuoke\Blog\Actions\BlogSlugGenerate;
 use Chuoke\Blog\Actions\BlogSummaryGenerate;
 use Chuoke\Blog\BlogManager;
 use Chuoke\Blog\Console\Commands\InstallCommand;
@@ -12,6 +13,7 @@ use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Contracts\BlogContentReviewer;
 use Chuoke\Blog\Contracts\BlogContentTranslator;
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
+use Chuoke\Blog\Contracts\BlogSlugGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Support\DefaultAttachmentPathGenerator;
 use Illuminate\Support\ServiceProvider;
@@ -111,6 +113,7 @@ class BlogServiceProvider extends ServiceProvider
     {
         $this->app->bind(AttachmentPathGenerator::class, fn () => app(config('blog.attachment.path_generator', DefaultAttachmentPathGenerator::class)));
         $this->app->bind(BlogSummaryGenerator::class, BlogSummaryGenerate::class);
+        $this->app->bind(BlogSlugGenerator::class, BlogSlugGenerate::class);
         $this->app->bind(BlogContentReviewer::class, BlogContentReview::class);
         $this->app->bind(BlogContentTranslator::class, BlogContentTranslate::class);
         $this->app->bind(BlogCoverGenerator::class, BlogCoverGenerate::class);

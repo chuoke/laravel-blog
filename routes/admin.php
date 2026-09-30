@@ -20,6 +20,9 @@ Route::prefix(config('blog.admin_route_prefix', 'admin/blog'))
             Route::post('summary', [$aiController, 'summary'])
                 ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.middleware', [])])
                 ->name('summary');
+            Route::post('slug', [$aiController, 'slug'])
+                ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.middleware', [])])
+                ->name('slug');
             Route::post('review', [$aiController, 'review'])
                 ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.middleware', [])])
                 ->name('review');

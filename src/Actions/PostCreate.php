@@ -14,8 +14,11 @@ class PostCreate
         // 1. Generate uid using the configured generator
         $uid = app(UidGenerate::class)->execute();
 
-        // 2. Generate slug (basic fallback if not provided, you might want a slug in DTO later)
-        $slug = Str::slug($data->title).'-'.strtolower(Str::random(5));
+        $slug = $data->slug ?? Str::slug($data->title);
+
+        if ($data->slug === null) {
+            $slug = ($slug ?: 'post').'-'.strtolower(Str::random(5));
+        }
 
         $post = Post::create([
             'uid' => $uid,
