@@ -35,7 +35,6 @@ class BlogSlugGenerate implements BlogSlugGenerator
         return implode(PHP_EOL, [
             'Article language: '.($data['language'] ?: 'unspecified'),
             '<article-title>'.($data['title'] ?: 'Untitled').'</article-title>',
-            '<article-content>'.($data['content'] ?: 'No content provided').'</article-content>',
         ]);
     }
 }
