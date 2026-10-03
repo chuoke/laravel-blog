@@ -5,13 +5,14 @@ namespace Chuoke\Blog\Actions;
 use Chuoke\Blog\Ai\BlogContentTranslateAgent;
 use Chuoke\Blog\Contracts\BlogContentTranslator;
 use Chuoke\Blog\Support\BlogAi;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class BlogContentTranslate implements BlogContentTranslator
 {
     /**
      * @param  array{title:string, summary:?string, content:string, sourceLanguage:string, targetLanguage:string}  $data
-     * @return array{title:string, summary:string, content:string}
+     * @return array{title:string, summary:string, content:string, slug:string}
      */
     public function execute(array $data): array
     {
@@ -23,9 +24,10 @@ class BlogContentTranslate implements BlogContentTranslator
             'title' => trim((string) ($response->structured['title'] ?? '')),
             'summary' => trim((string) ($response->structured['summary'] ?? '')),
             'content' => trim((string) ($response->structured['content'] ?? '')),
+            'slug' => Str::slug(trim((string) ($response->structured['slug'] ?? ''))),
         ];
 
-        if ($translation['title'] === '' || $translation['content'] === '') {
+        if ($translation['title'] === '' || $translation['content'] === '' || $translation['slug'] === '') {
             throw new RuntimeException('AI did not return a complete blog translation.');
         }
 

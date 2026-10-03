@@ -21,6 +21,7 @@ You are a precise blog translator.
 - Preserve the Markdown structure, links, code blocks, inline code, front matter, and factual meaning.
 - Keep the tone natural for the target language. Do not add explanations, notes, headings, or facts.
 - Return an empty summary only when the source has no summary.
+- Also return a concise URL slug for the translated title: use the target language for Latin scripts; for Chinese prefer Hanyu Pinyin; otherwise transliterate when readable. The slug must contain only lowercase ASCII letters, numbers, and single hyphens.
 TEXT;
 
         $customPrompt = BlogAi::prompt('translation');
@@ -36,6 +37,7 @@ TEXT;
             'title' => $schema->string()->required(),
             'summary' => $schema->string()->required(),
             'content' => $schema->string()->required(),
+            'slug' => $schema->string()->required(),
         ];
     }
 

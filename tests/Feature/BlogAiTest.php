@@ -60,7 +60,7 @@ it('generates a summary using the configured text provider and model', function 
 
 it('generates a normalized slug using the configured text provider and model', function (): void {
     config(['blog.ai.prompts.slug' => 'Prefer terms familiar to product discovery audiences.']);
-    BlogSlugGenerateAgent::fake([['slug' => 'AI Product Discovery Guide']]);
+    BlogSlugGenerateAgent::fake([['slug' => 'chan-pin-fa-xian-zhi-nan']]);
 
     $slug = (new BlogSlugGenerate())->execute([
         'title' => '产品发现指南',
@@ -68,7 +68,7 @@ it('generates a normalized slug using the configured text provider and model', f
         'language' => 'zh_CN',
     ]);
 
-    expect($slug)->toBe('ai-product-discovery-guide');
+    expect($slug)->toBe('chan-pin-fa-xian-zhi-nan');
 
     BlogSlugGenerateAgent::assertPrompted(
         fn ($prompt): bool => str_contains($prompt->prompt, 'Article language: zh_CN')
@@ -77,6 +77,7 @@ it('generates a normalized slug using the configured text provider and model', f
     );
 
     expect((new BlogSlugGenerateAgent())->instructions())
+        ->toContain('for Chinese, prefer concise Hanyu Pinyin')
         ->toContain('Prefer terms familiar to product discovery audiences.');
 });
 
@@ -123,6 +124,7 @@ it('translates an article with the configured text provider and model', function
         'title' => 'Translated title',
         'summary' => 'Translated summary',
         'content' => '# Translated content',
+        'slug' => 'fan-yi-biao-ti',
     ]]);
 
     $translation = (new BlogContentTranslate)->execute([
@@ -137,6 +139,7 @@ it('translates an article with the configured text provider and model', function
         'title' => 'Translated title',
         'summary' => 'Translated summary',
         'content' => '# Translated content',
+        'slug' => 'fan-yi-biao-ti',
     ]);
 
     BlogContentTranslateAgent::assertPrompted(
@@ -147,6 +150,7 @@ it('translates an article with the configured text provider and model', function
     );
 
     expect((new BlogContentTranslateAgent)->instructions())
+        ->toContain('for Chinese prefer Hanyu Pinyin')
         ->toContain('Keep product names in English.');
 });
 
@@ -171,6 +175,7 @@ it('translates from the original article for a translation draft', function (): 
         'title' => '翻译标题',
         'summary' => '翻译摘要',
         'content' => '# 翻译内容',
+        'slug' => 'fan-yi-biao-ti',
     ]]);
 
     $user = new User;
@@ -189,6 +194,7 @@ it('translates from the original article for a translation draft', function (): 
             'title' => '翻译标题',
             'summary' => '翻译摘要',
             'content' => '# 翻译内容',
+            'slug' => 'fan-yi-biao-ti',
         ]);
 
     BlogContentTranslateAgent::assertPrompted(

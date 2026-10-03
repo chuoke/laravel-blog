@@ -414,10 +414,11 @@ const reviewContent = async (): Promise<void> => {
 
 const translateContent = async (): Promise<void> => {
     try {
-        const translation = await translationHttp.post(adminUrl(`posts/${props.post.id}/ai/translate`)) as { title: string; summary: string; content: string };
+        const translation = await translationHttp.post(adminUrl(`posts/${props.post.id}/ai/translate`)) as { title: string; summary: string; content: string; slug: string };
         form.title = translation.title;
         form.summary = translation.summary;
         form.content = translation.content;
+        form.slug = translation.slug;
     } catch {
         alert(t('blogAdmin.ai.translationFailed'));
     }
