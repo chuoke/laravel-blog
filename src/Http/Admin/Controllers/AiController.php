@@ -129,30 +129,6 @@ class AiController extends Controller
         ]);
     }
 
-    public function activeCover(Request $request): JsonResponse
-    {
-        $coverGeneration = CoverGeneration::query()
-            ->where('user_id', $request->user()->getKey())
-            ->where('is_active', true)
-            ->latest('id')
-            ->first();
-
-        if ($coverGeneration === null) {
-            return response()->json(null);
-        }
-
-        $this->expireCoverGeneration($coverGeneration);
-
-        if (! $coverGeneration->is_active) {
-            return response()->json(null);
-        }
-
-        return response()->json([
-            'id' => $coverGeneration->id,
-            'status' => $coverGeneration->status,
-        ]);
-    }
-
     private function expireCoverGeneration(CoverGeneration $coverGeneration): void
     {
         $isExpired = $coverGeneration->status === 'pending'

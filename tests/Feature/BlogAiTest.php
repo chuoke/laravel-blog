@@ -284,12 +284,6 @@ it('queues cover generation and returns only the caller task status', function (
 
     Queue::assertPushedTimes(BlogCoverGenerateJob::class, 1);
 
-    $this->actingAs($user)
-        ->get(route('blog.admin.ai.cover.active'))
-        ->assertSuccessful()
-        ->assertJsonPath('id', $coverGeneration->id)
-        ->assertJsonPath('status', 'pending');
-
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration->update(['status' => 'completed', 'attachment_id' => $attachment->id]);
 

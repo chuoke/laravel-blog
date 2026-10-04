@@ -29,9 +29,6 @@ Route::prefix(config('blog.admin_route_prefix', 'admin/blog'))
             Route::post('cover', [$aiController, 'cover'])
                 ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.image_middleware', [])])
                 ->name('cover');
-            Route::get('cover/active', [$aiController, 'activeCover'])
-                ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.status_middleware', ['throttle:30,1'])])
-                ->name('cover.active');
             Route::get('cover/{coverGeneration}', [$aiController, 'coverStatus'])
                 ->middleware([AuthorizeBlogAi::class, ...config('blog.ai.status_middleware', ['throttle:30,1'])])
                 ->name('cover.status');

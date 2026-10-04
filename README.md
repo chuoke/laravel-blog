@@ -385,7 +385,7 @@ php artisan vendor:publish --tag=blog-migrations
 php artisan migrate
 ```
 
-The AI cover endpoint is asynchronous. Ensure a queue worker consumes the `default` queue with a timeout of at least 300 seconds and a `retry_after` greater than that timeout. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`; `GET ai/cover/active` restores a current task after a page reload. A custom `ai.controller` must implement `cover`, `coverStatus`, and `activeCover`.
+The AI cover endpoint is asynchronous. Ensure a queue worker consumes the `default` queue with a timeout of at least 300 seconds and a `retry_after` greater than that timeout. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`. A custom `ai.controller` must implement `cover` and `coverStatus`.
 
 ## Database
 

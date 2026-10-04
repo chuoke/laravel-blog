@@ -185,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { Link, useForm, useHttp } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import Layout from '../Layout.vue';
@@ -208,11 +208,6 @@ type AttachmentResponse = {
 type CoverGenerationStatus = {
     status: 'pending' | 'processing' | 'completed' | 'failed';
     attachment: AttachmentResponse | null;
-};
-
-type ActiveCoverGeneration = {
-    id: number;
-    status: 'pending' | 'processing';
 };
 
 type ReviewResult = {
@@ -261,7 +256,6 @@ const reviewHttp = useHttp({ title: '', content: '', language: '' });
 const reviewResult = ref<ReviewResult | null>(null);
 const coverGenerationId = ref<number | null>(null);
 let coverPollingTimer: ReturnType<typeof setInterval> | null = null;
-const coverGenerationStorageKey = 'blog-cover-generation:create';
 
 // Simple dark mode detection for the editor theme
 const editorTheme = computed(() => {
@@ -350,8 +344,12 @@ const generateCover = async (): Promise<void> => {
 
     try {
         const generation = await coverHttp.post(adminUrl('ai/cover')) as { id: number };
+
+        if (!Number.isInteger(generation.id) || generation.id <= 0) {
+            throw new Error('Invalid cover generation ID.');
+        }
+
         coverGenerationId.value = generation.id;
-        sessionStorage.setItem(coverGenerationStorageKey, String(generation.id));
         startCoverPolling();
     } catch {
         alert(t('blogAdmin.ai.coverFailed'));
@@ -366,7 +364,10 @@ const stopCoverPolling = (): void => {
 };
 
 const pollCoverGeneration = async (): Promise<void> => {
-    if (coverGenerationId.value === null) {
+    if (!Number.isInteger(coverGenerationId.value) || coverGenerationId.value <= 0) {
+        coverGenerationId.value = null;
+        stopCoverPolling();
+
         return;
     }
 
@@ -377,13 +378,11 @@ const pollCoverGeneration = async (): Promise<void> => {
             form.cover_image_id = generation.attachment.id;
             coverImageUrl.value = generation.attachment.url;
             coverGenerationId.value = null;
-            sessionStorage.removeItem(coverGenerationStorageKey);
             stopCoverPolling();
         }
 
         if (generation.status === 'failed') {
             coverGenerationId.value = null;
-            sessionStorage.removeItem(coverGenerationStorageKey);
             stopCoverPolling();
             alert(t('blogAdmin.ai.coverFailed'));
         }
@@ -398,34 +397,6 @@ const startCoverPolling = (): void => {
     coverPollingTimer = setInterval(() => void pollCoverGeneration(), 3000);
 };
 
-const restoreCoverGeneration = async (): Promise<void> => {
-    if (!props.aiEnabled) {
-        return;
-    }
-
-    const storedId = Number(sessionStorage.getItem(coverGenerationStorageKey));
-
-    if (Number.isInteger(storedId) && storedId > 0) {
-        coverGenerationId.value = storedId;
-        startCoverPolling();
-
-        return;
-    }
-
-    try {
-        const generation = await coverStatusHttp.get(adminUrl('ai/cover/active')) as ActiveCoverGeneration | null;
-
-        if (generation !== null) {
-            coverGenerationId.value = generation.id;
-            sessionStorage.setItem(coverGenerationStorageKey, String(generation.id));
-            startCoverPolling();
-        }
-    } catch {
-        return;
-    }
-};
-
-onMounted(() => void restoreCoverGeneration());
 onUnmounted(stopCoverPolling);
 
 const reviewContent = async (): Promise<void> => {
