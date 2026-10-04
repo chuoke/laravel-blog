@@ -191,6 +191,7 @@ return [
         'authorizer' => null,
         'middleware' => ['throttle:10,1'],
         'image_middleware' => ['throttle:3,1'],
+        'status_middleware' => ['throttle:30,1'],
         'text' => [
             'provider' => null,
             'model' => null,

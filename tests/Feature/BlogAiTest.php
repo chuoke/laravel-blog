@@ -13,15 +13,19 @@ use Chuoke\Blog\Ai\BlogSlugGenerateAgent;
 use Chuoke\Blog\Ai\BlogSummaryGenerateAgent;
 use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Contracts\BlogAiAuthorizer;
+use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
+use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
 use Chuoke\Blog\Models\Attachment;
+use Chuoke\Blog\Models\CoverGeneration;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Ai\Image;
 use Laravel\Ai\Providers\OpenAiProvider;
 
@@ -231,6 +235,160 @@ it('generates and stores a resized cover with the configured image provider and 
 
 it('provides a longer default timeout for AI cover generation', function (): void {
     expect(config('blog.ai.image.timeout'))->toBe(180);
+});
+
+it('queues cover generation and returns only the caller task status', function (): void {
+    config([
+        'blog.author_model' => User::class,
+        'blog.ai.image_middleware' => [],
+    ]);
+    Queue::fake();
+
+    $user = new User;
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $response = $this->actingAs($user)
+        ->post(route('blog.admin.ai.cover'), [
+            'title' => 'Queued cover',
+            'content' => 'The cover is generated in a background job.',
+            'language' => 'en',
+        ]);
+
+    $response
+        ->assertAccepted()
+        ->assertJsonPath('status', 'pending');
+
+    $coverGeneration = CoverGeneration::query()->findOrFail($response->json('id'));
+
+    expect($coverGeneration->user_id)->toBe('1')
+        ->and($coverGeneration->data['title'])->toBe('Queued cover');
+
+    Queue::assertPushed(BlogCoverGenerateJob::class, fn (BlogCoverGenerateJob $job): bool => $job->coverGenerationId === $coverGeneration->id);
+
+    $this->actingAs($user)
+        ->post(route('blog.admin.ai.cover'), [
+            'title' => 'Queued cover',
+            'content' => 'The cover is generated in a background job.',
+            'language' => 'en',
+        ])
+        ->assertAccepted()
+        ->assertJsonPath('id', $coverGeneration->id);
+
+    $this->actingAs($user)
+        ->post(route('blog.admin.ai.cover'), [
+            'title' => 'Another cover',
+            'content' => 'This request must not reuse another article cover.',
+            'language' => 'en',
+        ])
+        ->assertConflict();
+
+    Queue::assertPushedTimes(BlogCoverGenerateJob::class, 1);
+
+    $this->actingAs($user)
+        ->get(route('blog.admin.ai.cover.active'))
+        ->assertSuccessful()
+        ->assertJsonPath('id', $coverGeneration->id)
+        ->assertJsonPath('status', 'pending');
+
+    $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
+    $coverGeneration->update(['status' => 'completed', 'attachment_id' => $attachment->id]);
+
+    $this->actingAs($user)
+        ->get(route('blog.admin.ai.cover.status', $coverGeneration))
+        ->assertSuccessful()
+        ->assertJsonPath('status', 'completed')
+        ->assertJsonPath('attachment.id', $attachment->id);
+
+    $otherUser = new User;
+    $otherUser->forceFill(['id' => 2])->exists = true;
+
+    $this->actingAs($otherUser)
+        ->get(route('blog.admin.ai.cover.status', $coverGeneration))
+        ->assertNotFound();
+});
+
+it('stores a generated attachment when a queued cover job completes', function (): void {
+    $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'request_hash' => hash('sha256', 'queued-cover'),
+        'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
+    ]);
+
+    $generator = new class($attachment) implements BlogCoverGenerator
+    {
+        public function __construct(private readonly Attachment $attachment)
+        {
+        }
+
+        public function execute(array $data): Attachment
+        {
+            return $this->attachment;
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('completed')
+        ->attachment_id->toBe($attachment->id)
+        ->is_active->toBeNull()
+        ->data->toBeNull();
+
+    $alreadyCompletedGenerator = new class implements BlogCoverGenerator
+    {
+        public bool $called = false;
+
+        public function execute(array $data): Attachment
+        {
+            $this->called = true;
+
+            throw new \RuntimeException('Completed tasks must not run again.');
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($alreadyCompletedGenerator);
+
+    expect($alreadyCompletedGenerator->called)->toBeFalse();
+});
+
+it('expires a cover generation that remains pending in the queue', function (): void {
+    config(['blog.author_model' => User::class]);
+
+    $user = new User;
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'request_hash' => hash('sha256', 'expired-cover'),
+        'data' => ['title' => 'Queued cover', 'content' => 'Draft content', 'language' => 'en'],
+    ]);
+    $coverGeneration->update(['created_at' => now()->subMinutes(11)]);
+
+    $this->actingAs($user)
+        ->get(route('blog.admin.ai.cover.status', $coverGeneration))
+        ->assertSuccessful()
+        ->assertJsonPath('status', 'failed');
+
+    expect($coverGeneration->refresh())
+        ->is_active->toBeNull()
+        ->data->toBeNull();
+});
+
+it('marks a queued cover generation as failed after the job fails', function (): void {
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'request_hash' => hash('sha256', 'failed-cover'),
+        'status' => 'processing',
+        'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
+    ]);
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->failed(new \RuntimeException('Provider unavailable'));
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('failed')
+        ->is_active->toBeNull()
+        ->data->toBeNull();
 });
 
 it('optimizes a manually uploaded cover without requiring AI', function (): void {

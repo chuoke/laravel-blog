@@ -4,14 +4,18 @@ namespace Chuoke\Blog\Http\Admin\Controllers;
 
 use Chuoke\Blog\Contracts\BlogContentReviewer;
 use Chuoke\Blog\Contracts\BlogContentTranslator;
-use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Contracts\BlogSlugGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Http\Admin\Requests\BlogAiContentRequest;
+use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
+use Chuoke\Blog\Models\CoverGeneration;
 use Chuoke\Blog\Models\Post;
+use Chuoke\Blog\Support\BlogAi;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Throwable;
 
 class AiController extends Controller
@@ -55,16 +59,111 @@ class AiController extends Controller
         }
     }
 
-    public function cover(BlogAiContentRequest $request, BlogCoverGenerator $generate): JsonResponse
+    public function cover(BlogAiContentRequest $request): JsonResponse
     {
         try {
-            return response()->json($generate->execute($request->contentData()), 201);
+            BlogAi::ensureAvailable();
+
+            $data = $request->contentData();
+            $requestHash = hash('sha256', json_encode($data));
+            $coverGeneration = CoverGeneration::query()
+                ->where('user_id', $request->user()->getKey())
+                ->where('is_active', true)
+                ->latest('id')
+                ->first();
+
+            if ($coverGeneration !== null && $coverGeneration->request_hash !== $requestHash) {
+                return response()->json(['message' => 'A blog cover is already being generated.'], 409);
+            }
+
+            $shouldDispatch = false;
+
+            if ($coverGeneration === null) {
+                try {
+                    $coverGeneration = CoverGeneration::query()->create([
+                        'user_id' => $request->user()->getKey(),
+                        'request_hash' => $requestHash,
+                        'status' => 'pending',
+                        'data' => $data,
+                    ]);
+                    $shouldDispatch = true;
+                } catch (UniqueConstraintViolationException) {
+                    $coverGeneration = CoverGeneration::query()
+                        ->where('user_id', $request->user()->getKey())
+                        ->where('is_active', true)
+                        ->firstOrFail();
+
+                    if ($coverGeneration->request_hash !== $requestHash) {
+                        return response()->json(['message' => 'A blog cover is already being generated.'], 409);
+                    }
+                }
+
+            }
+
+            if ($shouldDispatch) {
+                BlogCoverGenerateJob::dispatch($coverGeneration->id)->afterCommit();
+            }
+
+            return response()->json([
+                'id' => $coverGeneration->id,
+                'status' => $coverGeneration->status,
+            ], 202);
         } catch (BlogAiUnavailable $e) {
             return response()->json(['message' => $e->getMessage()], 503);
         } catch (Throwable $e) {
             report($e);
 
             return response()->json(['message' => 'Unable to generate a blog cover. Please try again.'], 500);
+        }
+    }
+
+    public function coverStatus(Request $request, CoverGeneration $coverGeneration): JsonResponse
+    {
+        abort_unless($coverGeneration->user_id === (string) $request->user()->getKey(), 404);
+
+        $this->expireCoverGeneration($coverGeneration);
+
+        return response()->json([
+            'status' => $coverGeneration->status,
+            'attachment' => $coverGeneration->attachment,
+        ]);
+    }
+
+    public function activeCover(Request $request): JsonResponse
+    {
+        $coverGeneration = CoverGeneration::query()
+            ->where('user_id', $request->user()->getKey())
+            ->where('is_active', true)
+            ->latest('id')
+            ->first();
+
+        if ($coverGeneration === null) {
+            return response()->json(null);
+        }
+
+        $this->expireCoverGeneration($coverGeneration);
+
+        if (! $coverGeneration->is_active) {
+            return response()->json(null);
+        }
+
+        return response()->json([
+            'id' => $coverGeneration->id,
+            'status' => $coverGeneration->status,
+        ]);
+    }
+
+    private function expireCoverGeneration(CoverGeneration $coverGeneration): void
+    {
+        $isExpired = $coverGeneration->status === 'pending'
+            && $coverGeneration->created_at->lt(now()->subMinutes(10));
+
+        if ($isExpired) {
+            $coverGeneration->update([
+                'status' => 'failed',
+                'is_active' => null,
+                'data' => null,
+            ]);
         }
     }
 

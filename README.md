@@ -385,15 +385,18 @@ php artisan vendor:publish --tag=blog-migrations
 php artisan migrate
 ```
 
+The AI cover endpoint is asynchronous. Ensure a queue worker consumes the `default` queue with a timeout of at least 300 seconds and a `retry_after` greater than that timeout. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`; `GET ai/cover/active` restores a current task after a page reload. A custom `ai.controller` must implement `cover`, `coverStatus`, and `activeCover`.
+
 ## Database
 
-The package creates 5 tables via migrations:
+The package creates 6 tables via migrations:
 
 - `blog_posts` — articles with Markdown content, status, scheduling
 - `blog_categories` — hierarchical categories with JSON translations
 - `blog_tags` — tags with JSON translations
 - `blog_post_tag` — pivot table
 - `blog_attachments` — file uploads (cover images, etc.)
+- `blog_cover_generations` — short-lived AI cover-generation tasks
 
 `author_id` is `string(36)` to support UUID, ULID, and traditional auto-increment IDs.
 

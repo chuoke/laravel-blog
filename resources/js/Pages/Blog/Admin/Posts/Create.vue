@@ -101,10 +101,10 @@
                         <p class="text-xs text-base-content/60 font-medium">{{ t('blogAdmin.posts.uploadCover') }}</p>
                     </div>
                     
-                    <div v-if="uploadingCover" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
+                    <div v-if="uploadingCover || coverGenerationId !== null" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
                         <span class="loading loading-spinner loading-xs"></span> {{ t('blogAdmin.ai.coverProcessing') }}
                     </div>
-                    <button v-if="aiEnabled" type="button" class="btn btn-ghost btn-sm mt-3 w-full" :disabled="coverHttp.processing" @click="generateCover">
+                    <button v-if="aiEnabled" type="button" class="btn btn-ghost btn-sm mt-3 w-full" :disabled="coverHttp.processing || coverGenerationId !== null" @click="generateCover">
                         <span v-if="coverHttp.processing" class="loading loading-spinner loading-xs"></span>
                         {{ coverHttp.processing ? t('blogAdmin.ai.generating') : t('blogAdmin.ai.generateCover') }}
                     </button>
@@ -185,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, useForm, useHttp } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import Layout from '../Layout.vue';
@@ -203,6 +203,16 @@ import { useBlogRoutes } from '../../admin-routes';
 type AttachmentResponse = {
     id: number;
     url: string;
+};
+
+type CoverGenerationStatus = {
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    attachment: AttachmentResponse | null;
+};
+
+type ActiveCoverGeneration = {
+    id: number;
+    status: 'pending' | 'processing';
 };
 
 type ReviewResult = {
@@ -246,8 +256,12 @@ const coverUploadHttp = useHttp({ file: null as File | null });
 const summaryHttp = useHttp({ title: '', content: '', language: '' });
 const slugHttp = useHttp({ title: '', content: '', language: '' });
 const coverHttp = useHttp({ title: '', content: '', language: '' });
+const coverStatusHttp = useHttp({});
 const reviewHttp = useHttp({ title: '', content: '', language: '' });
 const reviewResult = ref<ReviewResult | null>(null);
+const coverGenerationId = ref<number | null>(null);
+let coverPollingTimer: ReturnType<typeof setInterval> | null = null;
+const coverGenerationStorageKey = 'blog-cover-generation:create';
 
 // Simple dark mode detection for the editor theme
 const editorTheme = computed(() => {
@@ -335,13 +349,84 @@ const generateCover = async (): Promise<void> => {
     fillAiContent(coverHttp);
 
     try {
-        const attachment = await coverHttp.post(adminUrl('ai/cover')) as AttachmentResponse;
-        form.cover_image_id = attachment.id;
-        coverImageUrl.value = attachment.url;
+        const generation = await coverHttp.post(adminUrl('ai/cover')) as { id: number };
+        coverGenerationId.value = generation.id;
+        sessionStorage.setItem(coverGenerationStorageKey, String(generation.id));
+        startCoverPolling();
     } catch {
         alert(t('blogAdmin.ai.coverFailed'));
     }
 };
+
+const stopCoverPolling = (): void => {
+    if (coverPollingTimer !== null) {
+        clearInterval(coverPollingTimer);
+        coverPollingTimer = null;
+    }
+};
+
+const pollCoverGeneration = async (): Promise<void> => {
+    if (coverGenerationId.value === null) {
+        return;
+    }
+
+    try {
+        const generation = await coverStatusHttp.get(adminUrl(`ai/cover/${coverGenerationId.value}`)) as CoverGenerationStatus;
+
+        if (generation.status === 'completed' && generation.attachment) {
+            form.cover_image_id = generation.attachment.id;
+            coverImageUrl.value = generation.attachment.url;
+            coverGenerationId.value = null;
+            sessionStorage.removeItem(coverGenerationStorageKey);
+            stopCoverPolling();
+        }
+
+        if (generation.status === 'failed') {
+            coverGenerationId.value = null;
+            sessionStorage.removeItem(coverGenerationStorageKey);
+            stopCoverPolling();
+            alert(t('blogAdmin.ai.coverFailed'));
+        }
+    } catch {
+        return;
+    }
+};
+
+const startCoverPolling = (): void => {
+    stopCoverPolling();
+    void pollCoverGeneration();
+    coverPollingTimer = setInterval(() => void pollCoverGeneration(), 3000);
+};
+
+const restoreCoverGeneration = async (): Promise<void> => {
+    if (!props.aiEnabled) {
+        return;
+    }
+
+    const storedId = Number(sessionStorage.getItem(coverGenerationStorageKey));
+
+    if (Number.isInteger(storedId) && storedId > 0) {
+        coverGenerationId.value = storedId;
+        startCoverPolling();
+
+        return;
+    }
+
+    try {
+        const generation = await coverStatusHttp.get(adminUrl('ai/cover/active')) as ActiveCoverGeneration | null;
+
+        if (generation !== null) {
+            coverGenerationId.value = generation.id;
+            sessionStorage.setItem(coverGenerationStorageKey, String(generation.id));
+            startCoverPolling();
+        }
+    } catch {
+        return;
+    }
+};
+
+onMounted(() => void restoreCoverGeneration());
+onUnmounted(stopCoverPolling);
 
 const reviewContent = async (): Promise<void> => {
     fillAiContent(reviewHttp);
