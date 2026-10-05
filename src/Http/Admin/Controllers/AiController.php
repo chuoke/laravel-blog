@@ -126,6 +126,7 @@ class AiController extends Controller
         return response()->json([
             'status' => $coverGeneration->status,
             'attachment' => $coverGeneration->attachment,
+            'reason' => $coverGeneration->status === 'failed' ? $coverGeneration->failure_reason : null,
         ]);
     }
 
@@ -139,6 +140,7 @@ class AiController extends Controller
                 'status' => 'failed',
                 'is_active' => null,
                 'data' => null,
+                'failure_reason' => 'queue_timeout',
             ]);
         }
     }

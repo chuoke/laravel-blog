@@ -146,7 +146,7 @@
                     </div>
 
                     <div v-if="uploadingCover || coverGenerationId !== null" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
-                        <span class="loading loading-spinner loading-xs"></span> {{ t('blogAdmin.ai.coverProcessing') }}
+                        <span class="loading loading-spinner loading-xs"></span> {{ t(uploadingCover ? 'blogAdmin.ai.coverOptimizing' : 'blogAdmin.ai.coverGenerating') }}
                     </div>
                     <button v-if="aiEnabled" type="button" class="btn btn-ghost btn-sm mt-3 w-full" :disabled="coverHttp.processing || coverGenerationId !== null" @click="generateCover">
                         <span v-if="coverHttp.processing" class="loading loading-spinner loading-xs"></span>
@@ -252,6 +252,7 @@ type AttachmentResponse = {
 type CoverGenerationStatus = {
     status: 'pending' | 'processing' | 'completed' | 'failed';
     attachment: AttachmentResponse | null;
+    reason: 'timeout' | 'rejected' | 'unavailable' | 'queue_timeout' | null;
 };
 
 type ReviewResult = {
@@ -443,7 +444,9 @@ const pollCoverGeneration = async (): Promise<void> => {
         if (generation.status === 'failed') {
             coverGenerationId.value = null;
             stopCoverPolling();
-            alert(t('blogAdmin.ai.coverFailed'));
+            alert(generation.reason
+                ? `${t('blogAdmin.ai.coverFailed')}\n${t(`blogAdmin.ai.coverFailureReasons.${generation.reason}`)}`
+                : t('blogAdmin.ai.coverFailed'));
         }
     } catch {
         return;

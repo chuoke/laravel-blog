@@ -11,7 +11,8 @@ class BlogCoverGenerate implements BlogCoverGenerator
 {
     public function __construct(
         private readonly BlogCoverAttachmentStore $coverAttachmentStore,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  array{title:?string, content:?string, language:?string}  $data
@@ -23,7 +24,6 @@ class BlogCoverGenerate implements BlogCoverGenerator
         $image = Image::of($this->buildPrompt($data))
             ->landscape()
             ->quality('high')
-            ->timeout(max(1, min(300, (int) config('blog.ai.image.timeout', 180))))
             ->generate($provider, $model)
             ->firstImage();
 

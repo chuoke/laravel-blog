@@ -7,6 +7,7 @@ use Chuoke\Blog\Actions\BlogCoverAttachmentStore;
 use Chuoke\Blog\Actions\BlogCoverGenerate;
 use Chuoke\Blog\Actions\BlogSlugGenerate;
 use Chuoke\Blog\Actions\BlogSummaryGenerate;
+use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Ai\BlogContentReviewAgent;
 use Chuoke\Blog\Ai\BlogContentTranslateAgent;
 use Chuoke\Blog\Ai\BlogSlugGenerateAgent;
@@ -15,7 +16,6 @@ use Chuoke\Blog\Contracts\AttachmentPathGenerator;
 use Chuoke\Blog\Contracts\BlogAiAuthorizer;
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
-use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
@@ -24,8 +24,8 @@ use Chuoke\Blog\Models\CoverGeneration;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Image;
 use Laravel\Ai\Providers\OpenAiProvider;
 
@@ -44,7 +44,7 @@ it('generates a summary using the configured text provider and model', function 
     config(['blog.ai.prompts.summary' => 'Prefer a practical, calm editorial tone.']);
     BlogSummaryGenerateAgent::fake([['summary' => 'A practical guide to building a focused editorial workflow.']]);
 
-    $summary = (new BlogSummaryGenerate)->execute([
+    $summary = (new BlogSummaryGenerate())->execute([
         'title' => 'Editorial workflow',
         'content' => 'A clear process for planning, drafting, and reviewing blog posts.',
         'language' => 'en',
@@ -58,7 +58,7 @@ it('generates a summary using the configured text provider and model', function 
             && $prompt->model === 'gpt-5-mini',
     );
 
-    expect((new BlogSummaryGenerateAgent)->instructions())
+    expect((new BlogSummaryGenerateAgent())->instructions())
         ->toContain('Prefer a practical, calm editorial tone.');
 });
 
@@ -96,7 +96,7 @@ it('returns a structured editorial review', function (): void {
         'issues' => ['Add sources for the central claim'],
     ]]);
 
-    $review = (new BlogContentReview)->execute([
+    $review = (new BlogContentReview())->execute([
         'title' => 'Review this post',
         'content' => 'Article content for editorial review.',
         'language' => 'en',
@@ -110,7 +110,7 @@ it('returns a structured editorial review', function (): void {
             'issues' => ['Add sources for the central claim'],
         ]);
 
-    expect((new BlogContentReviewAgent)->instructions())
+    expect((new BlogContentReviewAgent())->instructions())
         ->toContain('supplied response language')
         ->toContain('people-first standards')
         ->toContain('Do not reward or penalize length, page count, or word count.')
@@ -131,7 +131,7 @@ it('translates an article with the configured text provider and model', function
         'slug' => 'fan-yi-biao-ti',
     ]]);
 
-    $translation = (new BlogContentTranslate)->execute([
+    $translation = (new BlogContentTranslate())->execute([
         'title' => 'Original title',
         'summary' => 'Original summary',
         'content' => '# Original content',
@@ -153,21 +153,21 @@ it('translates an article with the configured text provider and model', function
             && $prompt->model === 'gpt-5-mini',
     );
 
-    expect((new BlogContentTranslateAgent)->instructions())
+    expect((new BlogContentTranslateAgent())->instructions())
         ->toContain('for Chinese prefer Hanyu Pinyin')
         ->toContain('Keep product names in English.');
 });
 
 it('translates from the original article for a translation draft', function (): void {
     config(['blog.author_model' => User::class]);
-    $original = (new PostCreate)->execute(new PostCreateData(
+    $original = (new PostCreate())->execute(new PostCreateData(
         title: 'Original title',
         summary: 'Original summary',
         content: '# Original content',
         authorId: 1,
         language: 'en',
     ));
-    $translation = (new PostCreate)->execute(new PostCreateData(
+    $translation = (new PostCreate())->execute(new PostCreateData(
         title: 'Existing translation',
         content: 'Existing content',
         authorId: 1,
@@ -182,7 +182,7 @@ it('translates from the original article for a translation draft', function (): 
         'slug' => 'fan-yi-biao-ti',
     ]]);
 
-    $user = new User;
+    $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $this->actingAs($user)
@@ -233,8 +233,8 @@ it('generates and stores a resized cover with the configured image provider and 
     );
 });
 
-it('provides a longer default timeout for AI cover generation', function (): void {
-    expect(config('blog.ai.image.timeout'))->toBe(180);
+it('does not configure an AI cover generation request timeout', function (): void {
+    expect(config('blog.ai.image.timeout'))->toBeNull();
 });
 
 it('queues cover generation and returns only the caller task status', function (): void {
@@ -244,7 +244,7 @@ it('queues cover generation and returns only the caller task status', function (
     ]);
     Queue::fake();
 
-    $user = new User;
+    $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $response = $this->actingAs($user)
@@ -263,7 +263,9 @@ it('queues cover generation and returns only the caller task status', function (
     expect($coverGeneration->user_id)->toBe('1')
         ->and($coverGeneration->data['title'])->toBe('Queued cover');
 
-    Queue::assertPushed(BlogCoverGenerateJob::class, fn (BlogCoverGenerateJob $job): bool => $job->coverGenerationId === $coverGeneration->id);
+    Queue::assertPushed(BlogCoverGenerateJob::class, fn (BlogCoverGenerateJob $job): bool => $job->coverGenerationId === $coverGeneration->id
+        && $job->queue === 'ai-image'
+        && $job->timeout === 0);
 
     $this->actingAs($user)
         ->post(route('blog.admin.ai.cover'), [
@@ -293,7 +295,7 @@ it('queues cover generation and returns only the caller task status', function (
         ->assertJsonPath('status', 'completed')
         ->assertJsonPath('attachment.id', $attachment->id);
 
-    $otherUser = new User;
+    $otherUser = new User();
     $otherUser->forceFill(['id' => 2])->exists = true;
 
     $this->actingAs($otherUser)
@@ -329,7 +331,7 @@ it('stores a generated attachment when a queued cover job completes', function (
         ->is_active->toBeNull()
         ->data->toBeNull();
 
-    $alreadyCompletedGenerator = new class implements BlogCoverGenerator
+    $alreadyCompletedGenerator = new class() implements BlogCoverGenerator
     {
         public bool $called = false;
 
@@ -337,7 +339,7 @@ it('stores a generated attachment when a queued cover job completes', function (
         {
             $this->called = true;
 
-            throw new \RuntimeException('Completed tasks must not run again.');
+            throw new RuntimeException('Completed tasks must not run again.');
         }
     };
 
@@ -349,7 +351,7 @@ it('stores a generated attachment when a queued cover job completes', function (
 it('expires a cover generation that remains pending in the queue', function (): void {
     config(['blog.author_model' => User::class]);
 
-    $user = new User;
+    $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $coverGeneration = CoverGeneration::create([
@@ -362,14 +364,18 @@ it('expires a cover generation that remains pending in the queue', function (): 
     $this->actingAs($user)
         ->get(route('blog.admin.ai.cover.status', $coverGeneration))
         ->assertSuccessful()
-        ->assertJsonPath('status', 'failed');
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('reason', 'queue_timeout');
 
     expect($coverGeneration->refresh())
         ->is_active->toBeNull()
-        ->data->toBeNull();
+        ->data->toBeNull()
+        ->failure_reason->toBe('queue_timeout');
 });
 
 it('marks a queued cover generation as failed after the job fails', function (): void {
+    config(['blog.author_model' => User::class]);
+
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
         'request_hash' => hash('sha256', 'failed-cover'),
@@ -377,12 +383,21 @@ it('marks a queued cover generation as failed after the job fails', function ():
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
-    (new BlogCoverGenerateJob($coverGeneration->id))->failed(new \RuntimeException('Provider unavailable'));
+    (new BlogCoverGenerateJob($coverGeneration->id))->failed(new RuntimeException('Provider unavailable'));
 
     expect($coverGeneration->refresh())
         ->status->toBe('failed')
         ->is_active->toBeNull()
-        ->data->toBeNull();
+        ->data->toBeNull()
+        ->failure_reason->toBe('unavailable');
+
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $this->actingAs($user)
+        ->get(route('blog.admin.ai.cover.status', $coverGeneration))
+        ->assertSuccessful()
+        ->assertJsonPath('reason', 'unavailable');
 });
 
 it('optimizes a manually uploaded cover without requiring AI', function (): void {
@@ -410,7 +425,7 @@ it('uses the configured path generator for attachments and covers', function ():
 });
 
 it('rejects attachment paths outside the configured disk', function (): void {
-    app()->instance(AttachmentPathGenerator::class, new class implements AttachmentPathGenerator
+    app()->instance(AttachmentPathGenerator::class, new class() implements AttachmentPathGenerator
     {
         public function generate(string $fileName, string $extension, ?string $directory = null): string
         {
@@ -424,7 +439,7 @@ it('rejects attachment paths outside the configured disk', function (): void {
 it('requires blog AI to be explicitly enabled', function (): void {
     config(['blog.ai.enabled' => false]);
 
-    (new BlogSummaryGenerate)->execute([
+    (new BlogSummaryGenerate())->execute([
         'title' => 'Disabled AI',
         'content' => null,
         'language' => 'en',
@@ -437,7 +452,7 @@ it('does not expose AI routes while blog AI is disabled', function (): void {
         'blog.ai.enabled' => false,
     ]);
 
-    $user = new User;
+    $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $this->actingAs($user)
@@ -451,7 +466,7 @@ it('uses the configured AI authorizer', function (): void {
         'blog.ai.authorizer' => DenyBlogAi::class,
     ]);
 
-    $user = new User;
+    $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $this->actingAs($user)
@@ -460,7 +475,7 @@ it('uses the configured AI authorizer', function (): void {
 });
 
 it('allows the host application to replace an AI action contract', function (): void {
-    app()->instance(BlogSummaryGenerator::class, new class implements BlogSummaryGenerator
+    app()->instance(BlogSummaryGenerator::class, new class() implements BlogSummaryGenerator
     {
         public function execute(array $data): string
         {
