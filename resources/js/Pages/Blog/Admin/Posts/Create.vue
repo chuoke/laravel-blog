@@ -54,7 +54,7 @@
                     <div class="flex-1 overflow-hidden relative">
                         <MdEditor 
                             v-model="form.content" 
-                            :language="locale === 'zh-CN' ? 'zh-CN' : 'en-US'"
+                            :language="locale.startsWith('zh') ? 'zh-CN' : 'en-US'"
                             :theme="editorTheme" 
                             @onUploadImg="onUploadImg"
                             class="h-full! border-0!"

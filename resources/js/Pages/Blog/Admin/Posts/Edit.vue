@@ -98,7 +98,7 @@
                         <MdEditor
                             v-model="form.content"
                             height="100%"
-                            :language="locale === 'zh-CN' ? 'zh-CN' : 'en-US'"
+                            :language="locale.startsWith('zh') ? 'zh-CN' : 'en-US'"
                             :theme="editorTheme"
                             @onUploadImg="onUploadImg"
                             class="h-full! border-0!"
@@ -456,7 +456,7 @@ const pollCoverGeneration = async (): Promise<void> => {
 const startCoverPolling = (): void => {
     stopCoverPolling();
     void pollCoverGeneration();
-    coverPollingTimer = setInterval(() => void pollCoverGeneration(), 3000);
+    coverPollingTimer = setInterval(() => void pollCoverGeneration(), 5000);
 };
 
 onUnmounted(stopCoverPolling);

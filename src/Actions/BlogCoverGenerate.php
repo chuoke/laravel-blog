@@ -24,6 +24,7 @@ class BlogCoverGenerate implements BlogCoverGenerator
         $image = Image::of($this->buildPrompt($data))
             ->landscape()
             ->quality('high')
+            ->timeout(0)
             ->generate($provider, $model)
             ->firstImage();
 
