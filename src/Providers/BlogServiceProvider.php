@@ -35,7 +35,7 @@ class BlogServiceProvider extends ServiceProvider
         // therefore a fresh cache - for each request/job instead of leaking
         // stale data across them.
         $this->app->scoped(BlogManager::class, function ($app) {
-            return new BlogManager;
+            return new BlogManager();
         });
 
         $this->registerActions();
@@ -116,7 +116,9 @@ class BlogServiceProvider extends ServiceProvider
         $this->app->bind(BlogSlugGenerator::class, BlogSlugGenerate::class);
         $this->app->bind(BlogContentReviewer::class, BlogContentReview::class);
         $this->app->bind(BlogContentTranslator::class, BlogContentTranslate::class);
-        $this->app->bind(BlogCoverGenerator::class, BlogCoverGenerate::class);
+        $this->app->bind(BlogCoverGenerator::class, fn ($app): BlogCoverGenerator => $app->make(
+            config('blog.ai.cover.generator', BlogCoverGenerate::class),
+        ));
     }
 
     /**

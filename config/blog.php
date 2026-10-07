@@ -1,5 +1,6 @@
 <?php
 
+use Chuoke\Blog\Actions\BlogCoverGenerate;
 use Chuoke\Blog\Http\Admin\Controllers\AiController;
 use Chuoke\Blog\Support\DefaultAttachmentPathGenerator;
 use Chuoke\Blog\Support\Nanoid;
@@ -199,6 +200,9 @@ return [
         'image' => [
             'provider' => null,
             'model' => null,
+        ],
+        'cover' => [
+            'generator' => BlogCoverGenerate::class,
         ],
         'prompts' => [
             'summary' => null,

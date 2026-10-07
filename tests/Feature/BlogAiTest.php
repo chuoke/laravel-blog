@@ -40,6 +40,10 @@ beforeEach(function (): void {
     ]);
 });
 
+it('resolves the default AI cover generator from configuration', function (): void {
+    expect(app(BlogCoverGenerator::class))->toBeInstanceOf(BlogCoverGenerate::class);
+});
+
 it('generates a summary using the configured text provider and model', function (): void {
     config(['blog.ai.prompts.summary' => 'Prefer a practical, calm editorial tone.']);
     BlogSummaryGenerateAgent::fake([['summary' => 'A practical guide to building a focused editorial workflow.']]);

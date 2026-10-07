@@ -368,6 +368,14 @@ class AuthorizeBlogAi implements BlogAiAuthorizer
 ],
 ```
 
+The package uses `Chuoke\Blog\Actions\BlogCoverGenerate` by default for AI covers. Set `ai.cover.generator` to a class implementing `Chuoke\Blog\Contracts\BlogCoverGenerator` when an image provider needs a custom request or response flow. This leaves summary, slug, review, and translation generation on the regular Laravel AI path.
+
+```php
+'ai' => [
+    'cover' => ['generator' => App\Blog\BailianBlogCoverGenerate::class],
+],
+```
+
 ### Attachment Paths
 
 `attachment.path_generator` accepts a class implementing `Chuoke\Blog\Contracts\AttachmentPathGenerator`. It receives the original name, extension, and optional directory, and must return a unique path relative to the configured disk. The default uses UUIDs; a NanoID-and-date strategy is a good host-specific alternative.
