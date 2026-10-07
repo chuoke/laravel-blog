@@ -368,7 +368,7 @@ class AuthorizeBlogAi implements BlogAiAuthorizer
 ],
 ```
 
-The package uses `Chuoke\Blog\Actions\BlogCoverGenerate` by default for AI covers. Set `ai.cover.generator` to a class implementing `Chuoke\Blog\Contracts\BlogCoverGenerator` when an image provider needs a custom request or response flow. This leaves summary, slug, review, and translation generation on the regular Laravel AI path.
+The package uses `Chuoke\Blog\Actions\BlogCoverGenerate` by default for AI covers. Set `ai.cover.generator` to a class implementing `Chuoke\Blog\Contracts\BlogCoverGenerator` when an image provider needs a custom request or response flow. The Job adds `cover_generation_id` to the action data, so a custom asynchronous action can store and reuse its provider task ID in that generation record. This leaves summary, slug, review, and translation generation on the regular Laravel AI path.
 
 ```php
 'ai' => [
@@ -393,7 +393,7 @@ php artisan vendor:publish --tag=blog-migrations
 php artisan migrate
 ```
 
-The AI cover endpoint is asynchronous. It dispatches to the `ai-image` queue without an HTTP or job timeout, because image providers can take several minutes. Run a dedicated worker for that queue with `--timeout=0 --tries=1`, and set the active queue connection's `retry_after` to at least 3600 seconds. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`. A custom `ai.controller` must implement `cover` and `coverStatus`.
+The AI cover endpoint is asynchronous. It dispatches to the `ai-image` queue without an HTTP or job timeout, because image providers can take several minutes. Run a dedicated worker for that queue with `--timeout=0 --tries=1`, and set the active queue connection's `retry_after` to at least 3600 seconds. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`. A custom `ai.controller` must implement `cover` and `coverStatus`. The package dispatches `Chuoke\Blog\Events\BlogCoverGenerated` and `Chuoke\Blog\Events\BlogCoverGenerationFailed` after saving the final task state.
 
 ## Database
 

@@ -3,6 +3,8 @@
 namespace Chuoke\Blog\Jobs;
 
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
+use Chuoke\Blog\Events\BlogCoverGenerated;
+use Chuoke\Blog\Events\BlogCoverGenerationFailed;
 use Chuoke\Blog\Models\CoverGeneration;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -41,9 +43,12 @@ class BlogCoverGenerateJob implements ShouldQueue
             return;
         }
 
-        $attachment = $generate->execute($coverGeneration->data);
+        $attachment = $generate->execute([
+            ...$coverGeneration->data,
+            'cover_generation_id' => $coverGeneration->getKey(),
+        ]);
 
-        CoverGeneration::query()
+        $completed = CoverGeneration::query()
             ->whereKey($this->coverGenerationId)
             ->where('is_active', true)
             ->where('status', 'processing')
@@ -53,6 +58,14 @@ class BlogCoverGenerateJob implements ShouldQueue
                 'attachment_id' => $attachment->getKey(),
                 'data' => null,
             ]);
+
+        if ($completed !== 0) {
+            try {
+                event(new BlogCoverGenerated($coverGeneration->refresh()));
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     public function failed(Throwable $exception): void
@@ -62,7 +75,7 @@ class BlogCoverGenerateJob implements ShouldQueue
             'exception' => $exception,
         ]);
 
-        CoverGeneration::query()
+        $failed = CoverGeneration::query()
             ->whereKey($this->coverGenerationId)
             ->where('is_active', true)
             ->where('status', 'processing')
@@ -72,6 +85,18 @@ class BlogCoverGenerateJob implements ShouldQueue
                 'data' => null,
                 'failure_reason' => $this->failureReason($exception),
             ]);
+
+        if ($failed !== 0) {
+            $coverGeneration = CoverGeneration::query()->find($this->coverGenerationId);
+
+            if ($coverGeneration !== null) {
+                try {
+                    event(new BlogCoverGenerationFailed($coverGeneration));
+                } catch (Throwable $eventException) {
+                    report($eventException);
+                }
+            }
+        }
     }
 
     private function failureReason(Throwable $exception): string

@@ -17,6 +17,8 @@ use Chuoke\Blog\Contracts\BlogAiAuthorizer;
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Contracts\BlogSummaryGenerator;
 use Chuoke\Blog\Dtos\PostCreateData;
+use Chuoke\Blog\Events\BlogCoverGenerated;
+use Chuoke\Blog\Events\BlogCoverGenerationFailed;
 use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
 use Chuoke\Blog\Models\Attachment;
@@ -25,6 +27,7 @@ use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Image;
 use Laravel\Ai\Providers\OpenAiProvider;
@@ -308,6 +311,8 @@ it('queues cover generation and returns only the caller task status', function (
 });
 
 it('stores a generated attachment when a queued cover job completes', function (): void {
+    Event::fake();
+
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
@@ -335,6 +340,8 @@ it('stores a generated attachment when a queued cover job completes', function (
         ->is_active->toBeNull()
         ->data->toBeNull();
 
+    Event::assertDispatched(BlogCoverGenerated::class, fn (BlogCoverGenerated $event): bool => $event->coverGeneration->is($coverGeneration));
+
     $alreadyCompletedGenerator = new class() implements BlogCoverGenerator
     {
         public bool $called = false;
@@ -352,7 +359,7 @@ it('stores a generated attachment when a queued cover job completes', function (
     expect($alreadyCompletedGenerator->called)->toBeFalse();
 });
 
-it('expires a cover generation that remains pending in the queue', function (): void {
+it('keeps a long-running cover generation available for status polling', function (): void {
     config(['blog.author_model' => User::class]);
 
     $user = new User();
@@ -368,16 +375,18 @@ it('expires a cover generation that remains pending in the queue', function (): 
     $this->actingAs($user)
         ->get(route('blog.admin.ai.cover.status', $coverGeneration))
         ->assertSuccessful()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('reason', 'queue_timeout');
+        ->assertJsonPath('status', 'pending')
+        ->assertJsonPath('reason', null);
 
     expect($coverGeneration->refresh())
-        ->is_active->toBeNull()
-        ->data->toBeNull()
-        ->failure_reason->toBe('queue_timeout');
+        ->is_active->toBe(1)
+        ->data->toBeArray()
+        ->failure_reason->toBeNull();
 });
 
 it('marks a queued cover generation as failed after the job fails', function (): void {
+    Event::fake();
+
     config(['blog.author_model' => User::class]);
 
     $coverGeneration = CoverGeneration::create([
@@ -394,6 +403,8 @@ it('marks a queued cover generation as failed after the job fails', function ():
         ->is_active->toBeNull()
         ->data->toBeNull()
         ->failure_reason->toBe('unavailable');
+
+    Event::assertDispatched(BlogCoverGenerationFailed::class, fn (BlogCoverGenerationFailed $event): bool => $event->coverGeneration->is($coverGeneration));
 
     $user = new User();
     $user->forceFill(['id' => 1])->exists = true;

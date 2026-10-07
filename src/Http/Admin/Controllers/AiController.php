@@ -12,10 +12,10 @@ use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
 use Chuoke\Blog\Models\CoverGeneration;
 use Chuoke\Blog\Models\Post;
 use Chuoke\Blog\Support\BlogAi;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Throwable;
 
 class AiController extends Controller
@@ -121,28 +121,11 @@ class AiController extends Controller
     {
         abort_unless($coverGeneration->user_id === (string) $request->user()->getKey(), 404);
 
-        $this->expireCoverGeneration($coverGeneration);
-
         return response()->json([
             'status' => $coverGeneration->status,
             'attachment' => $coverGeneration->attachment,
             'reason' => $coverGeneration->status === 'failed' ? $coverGeneration->failure_reason : null,
         ]);
-    }
-
-    private function expireCoverGeneration(CoverGeneration $coverGeneration): void
-    {
-        $isExpired = $coverGeneration->status === 'pending'
-            && $coverGeneration->created_at->lt(now()->subMinutes(10));
-
-        if ($isExpired) {
-            $coverGeneration->update([
-                'status' => 'failed',
-                'is_active' => null,
-                'data' => null,
-                'failure_reason' => 'queue_timeout',
-            ]);
-        }
     }
 
     public function translate(Post $post, BlogContentTranslator $translate): JsonResponse
