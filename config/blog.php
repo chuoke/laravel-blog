@@ -203,6 +203,9 @@ return [
         ],
         'cover' => [
             'generator' => BlogCoverGenerate::class,
+            'timeout' => 3300,
+            'retry_after' => 3600,
+            'tries' => 2,
         ],
         'prompts' => [
             'summary' => null,

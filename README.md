@@ -393,7 +393,7 @@ php artisan vendor:publish --tag=blog-migrations
 php artisan migrate
 ```
 
-The AI cover endpoint is asynchronous. It dispatches to the `ai-image` queue without an HTTP or job timeout, because image providers can take several minutes. Run a dedicated worker for that queue with `--timeout=0 --tries=1`, and set the active queue connection's `retry_after` to at least 3600 seconds. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`. A custom `ai.controller` must implement `cover` and `coverStatus`. The package dispatches `Chuoke\Blog\Events\BlogCoverGenerated` and `Chuoke\Blog\Events\BlogCoverGenerationFailed` after saving the final task state.
+The AI cover endpoint is asynchronous. It dispatches to the `ai-image` queue with a 3300-second job timeout, two attempts, and a 3600-second stale-task lease by default. Ensure the active queue connection's `retry_after` exceeds the job timeout and that its worker consumes `ai-image`, for example `php artisan queue:work --queue=default,ai-image --tries=2 --timeout=3300`. If a worker stops, the retried job reclaims the stale generation. A completed result is final; a late successful result may replace a failed result. Custom admin pages must submit to `POST ai/cover`, then poll `GET ai/cover/{id}` until the status is `completed` or `failed`. A custom `ai.controller` must implement `cover` and `coverStatus`. The package dispatches `Chuoke\Blog\Events\BlogCoverGenerated` and `Chuoke\Blog\Events\BlogCoverGenerationFailed` after saving the final task state.
 
 ## Database
 

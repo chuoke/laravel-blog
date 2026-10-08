@@ -240,8 +240,10 @@ it('generates and stores a resized cover with the configured image provider and 
     );
 });
 
-it('does not configure an AI cover generation request timeout', function (): void {
-    expect(config('blog.ai.image.timeout'))->toBeNull();
+it('configures bounded AI cover generation retries', function (): void {
+    expect(config('blog.ai.cover.timeout'))->toBe(3300)
+        ->and(config('blog.ai.cover.retry_after'))->toBe(3600)
+        ->and(config('blog.ai.cover.tries'))->toBe(2);
 });
 
 it('queues cover generation and returns only the caller task status', function (): void {
@@ -272,7 +274,8 @@ it('queues cover generation and returns only the caller task status', function (
 
     Queue::assertPushed(BlogCoverGenerateJob::class, fn (BlogCoverGenerateJob $job): bool => $job->coverGenerationId === $coverGeneration->id
         && $job->queue === 'ai-image'
-        && $job->timeout === 0);
+        && $job->timeout === 3300
+        && $job->tries === 2);
 
     $this->actingAs($user)
         ->post(route('blog.admin.ai.cover'), [
@@ -302,7 +305,7 @@ it('queues cover generation and returns only the caller task status', function (
         ->assertJsonPath('status', 'completed')
         ->assertJsonPath('attachment.id', $attachment->id);
 
-    $otherUser = new User();
+    $otherUser = new User;
     $otherUser->forceFill(['id' => 2])->exists = true;
 
     $this->actingAs($otherUser)
@@ -392,9 +395,23 @@ it('marks a queued cover generation as failed after the job fails', function ():
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
         'request_hash' => hash('sha256', 'failed-cover'),
-        'status' => 'processing',
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
+
+    $generator = new class implements BlogCoverGenerator
+    {
+        public function execute(array $data): Attachment
+        {
+            throw new RuntimeException('Provider unavailable');
+        }
+    };
+    $job = new BlogCoverGenerateJob($coverGeneration->id);
+
+    expect(fn () => $job->handle($generator))->toThrow(RuntimeException::class, 'Provider unavailable');
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('pending')
+        ->data->toBeArray();
 
     (new BlogCoverGenerateJob($coverGeneration->id))->failed(new RuntimeException('Provider unavailable'));
 
@@ -413,6 +430,78 @@ it('marks a queued cover generation as failed after the job fails', function ():
         ->get(route('blog.admin.ai.cover.status', $coverGeneration))
         ->assertSuccessful()
         ->assertJsonPath('reason', 'unavailable');
+});
+
+it('reclaims a stale cover generation after its worker stops', function (): void {
+    Event::fake();
+
+    $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'request_hash' => hash('sha256', 'stale-cover'),
+        'status' => 'processing',
+        'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
+    ]);
+    CoverGeneration::query()
+        ->whereKey($coverGeneration)
+        ->update(['updated_at' => now()->subSeconds(3601)]);
+
+    $generator = new class($attachment) implements BlogCoverGenerator
+    {
+        public function __construct(private readonly Attachment $attachment)
+        {
+        }
+
+        public function execute(array $data): Attachment
+        {
+            return $this->attachment;
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('completed')
+        ->attachment_id->toBe($attachment->id)
+        ->is_active->toBeNull();
+});
+
+it('keeps a late successful result over a failed result', function (): void {
+    Event::fake();
+
+    $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'request_hash' => hash('sha256', 'late-success-cover'),
+        'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
+    ]);
+
+    $generator = new class($attachment, $coverGeneration) implements BlogCoverGenerator
+    {
+        public function __construct(
+            private readonly Attachment $attachment,
+            private readonly CoverGeneration $coverGeneration,
+        ) {
+        }
+
+        public function execute(array $data): Attachment
+        {
+            $this->coverGeneration->update([
+                'status' => 'failed',
+                'is_active' => null,
+                'data' => null,
+            ]);
+
+            return $this->attachment;
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('completed')
+        ->attachment_id->toBe($attachment->id)
+        ->is_active->toBeNull();
 });
 
 it('optimizes a manually uploaded cover without requiring AI', function (): void {

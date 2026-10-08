@@ -15,22 +15,32 @@ class BlogCoverGenerateJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries;
 
-    public int $timeout = 0;
+    public int $timeout;
 
     public function __construct(
         public readonly int $coverGenerationId,
     ) {
         $this->onQueue('ai-image');
+        $this->tries = (int) config('blog.ai.cover.tries', 2);
+        $this->timeout = (int) config('blog.ai.cover.timeout', 3300);
     }
 
     public function handle(BlogCoverGenerator $generate): void
     {
+        $staleAt = now()->subSeconds((int) config('blog.ai.cover.retry_after', 3600));
+
         $claimed = CoverGeneration::query()
             ->whereKey($this->coverGenerationId)
             ->where('is_active', true)
-            ->where('status', 'pending')
+            ->where(function ($query) use ($staleAt): void {
+                $query->where('status', 'pending')
+                    ->orWhere(function ($query) use ($staleAt): void {
+                        $query->where('status', 'processing')
+                            ->where('updated_at', '<=', $staleAt);
+                    });
+            })
             ->update(['status' => 'processing']);
 
         if ($claimed === 0) {
@@ -43,20 +53,30 @@ class BlogCoverGenerateJob implements ShouldQueue
             return;
         }
 
-        $attachment = $generate->execute([
-            ...$coverGeneration->data,
-            'cover_generation_id' => $coverGeneration->getKey(),
-        ]);
+        try {
+            $attachment = $generate->execute([
+                ...($coverGeneration->data ?? []),
+                'cover_generation_id' => $coverGeneration->getKey(),
+            ]);
+        } catch (Throwable $exception) {
+            CoverGeneration::query()
+                ->whereKey($this->coverGenerationId)
+                ->where('is_active', true)
+                ->where('status', 'processing')
+                ->update(['status' => 'pending']);
+
+            throw $exception;
+        }
 
         $completed = CoverGeneration::query()
             ->whereKey($this->coverGenerationId)
-            ->where('is_active', true)
-            ->where('status', 'processing')
+            ->whereIn('status', ['processing', 'failed'])
             ->update([
                 'status' => 'completed',
                 'is_active' => null,
                 'attachment_id' => $attachment->getKey(),
                 'data' => null,
+                'failure_reason' => null,
             ]);
 
         if ($completed !== 0) {
@@ -75,10 +95,18 @@ class BlogCoverGenerateJob implements ShouldQueue
             'exception' => $exception,
         ]);
 
+        $staleAt = now()->subSeconds((int) config('blog.ai.cover.retry_after', 3600));
+
         $failed = CoverGeneration::query()
             ->whereKey($this->coverGenerationId)
             ->where('is_active', true)
-            ->where('status', 'processing')
+            ->where(function ($query) use ($staleAt): void {
+                $query->where('status', 'pending')
+                    ->orWhere(function ($query) use ($staleAt): void {
+                        $query->where('status', 'processing')
+                            ->where('updated_at', '<=', $staleAt);
+                    });
+            })
             ->update([
                 'status' => 'failed',
                 'is_active' => null,
@@ -97,6 +125,14 @@ class BlogCoverGenerateJob implements ShouldQueue
                 }
             }
         }
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        return [60];
     }
 
     private function failureReason(Throwable $exception): string
