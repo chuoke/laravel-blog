@@ -2,7 +2,7 @@
 @php
     $locale = app()->getLocale();
     $latest = Blog::latestPosts(12);
-    $popular = Blog::popularPosts(5);
+    $popular = Blog::popularPosts(3);
     $lead = Blog::pinnedPosts(1)->first() ?? $latest->first();
     $other = $latest->reject(fn ($post) => $lead && $post->is($lead));
 @endphp

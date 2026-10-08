@@ -6,8 +6,12 @@
     $popularPosts = Blog::popularPosts(5);
 
     $lead = $pinnedPosts->first() ?? $latestPosts->first();
-    $secondaryPosts = $pinnedPosts->skip(1)->take(2);
     $stories = $latestPosts->reject(fn ($post) => $lead && $post->is($lead));
+    $secondaryPosts = $pinnedPosts
+        ->reject(fn ($post) => $lead && $post->is($lead))
+        ->merge($stories)
+        ->unique('id')
+        ->take(2);
 @endphp
 
 @section('title', config('app.name'))

@@ -2,6 +2,9 @@
 
 use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Dtos\PostCreateData;
+use Chuoke\Blog\Facades\Blog;
+use Chuoke\Blog\Models\Post;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User;
 
 it('renders the blog homepage using the resolved theme views', function () {
@@ -10,6 +13,47 @@ it('renders the blog homepage using the resolved theme views', function () {
     $response = $this->get(route('blog.home'));
 
     $response->assertOk();
+});
+
+it('uses matching article limits for both newsroom sidebars', function () {
+    Blog::shouldReceive('latestPosts')->once()->with(12)->andReturn(new Collection);
+    Blog::shouldReceive('popularPosts')->once()->with(3)->andReturn(new Collection);
+    Blog::shouldReceive('pinnedPosts')->once()->with(1)->andReturn(new Collection);
+    Blog::shouldReceive('formatDate')->once()->andReturn('October 8, 2026');
+    Blog::shouldReceive('categories')->once()->andReturn(new Collection);
+
+    $this->app['view']->getFinder()->prependNamespace('blog', __DIR__.'/../../resources/views/themes/newsroom');
+
+    $this->view('blog::home')->assertSee(__('blog::ui.trending'));
+});
+
+it('fills the magazine issue sidebar with latest articles when only the lead is pinned', function () {
+    $lead = new Post(['id' => 1, 'uid' => 'lead', 'slug' => 'lead', 'title' => 'Lead story', 'published_at' => now(), 'language' => 'en']);
+    $firstFallback = new Post(['id' => 2, 'uid' => 'first', 'slug' => 'first', 'title' => 'First fallback story', 'published_at' => now(), 'language' => 'en']);
+    $secondFallback = new Post(['id' => 3, 'uid' => 'second', 'slug' => 'second', 'title' => 'Second fallback story', 'published_at' => now(), 'language' => 'en']);
+
+    $lead->id = 1;
+    $firstFallback->id = 2;
+    $secondFallback->id = 3;
+
+    foreach ([$lead, $firstFallback, $secondFallback] as $post) {
+        $post->setRelation('category', null);
+        $post->setRelation('coverImage', null);
+    }
+
+    Blog::shouldReceive('pinnedPosts')->once()->with(3)->andReturn(new Collection([$lead]));
+    Blog::shouldReceive('latestPosts')->once()->with(8)->andReturn(new Collection([$lead, $firstFallback, $secondFallback]));
+    Blog::shouldReceive('popularPosts')->once()->with(5)->andReturn(new Collection);
+    Blog::shouldReceive('formatDate')->andReturn('October 8, 2026');
+    Blog::shouldReceive('categories')->andReturn(new Collection);
+    Blog::shouldReceive('categoriesWithCount')->once()->andReturn(new Collection);
+    Blog::shouldReceive('tagsWithCount')->once()->andReturn(new Collection);
+
+    $this->app['view']->getFinder()->prependNamespace('blog', __DIR__.'/../../resources/views/themes/magazine');
+
+    $this->view('blog::home')
+        ->assertSee('First fallback story')
+        ->assertSee('Second fallback story');
 });
 
 it('renders the posts index page', function () {
