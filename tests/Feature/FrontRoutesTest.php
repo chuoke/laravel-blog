@@ -31,18 +31,22 @@ it('fills the magazine issue sidebar with latest articles when only the lead is 
     $lead = new Post(['id' => 1, 'uid' => 'lead', 'slug' => 'lead', 'title' => 'Lead story', 'published_at' => now(), 'language' => 'en']);
     $firstFallback = new Post(['id' => 2, 'uid' => 'first', 'slug' => 'first', 'title' => 'First fallback story', 'published_at' => now(), 'language' => 'en']);
     $secondFallback = new Post(['id' => 3, 'uid' => 'second', 'slug' => 'second', 'title' => 'Second fallback story', 'published_at' => now(), 'language' => 'en']);
+    $thirdFallback = new Post(['id' => 4, 'uid' => 'third', 'slug' => 'third', 'title' => 'Third fallback story', 'published_at' => now(), 'language' => 'en']);
+    $fourthFallback = new Post(['id' => 5, 'uid' => 'fourth', 'slug' => 'fourth', 'title' => 'Fourth fallback story', 'published_at' => now(), 'language' => 'en']);
 
     $lead->id = 1;
     $firstFallback->id = 2;
     $secondFallback->id = 3;
+    $thirdFallback->id = 4;
+    $fourthFallback->id = 5;
 
-    foreach ([$lead, $firstFallback, $secondFallback] as $post) {
+    foreach ([$lead, $firstFallback, $secondFallback, $thirdFallback, $fourthFallback] as $post) {
         $post->setRelation('category', null);
         $post->setRelation('coverImage', null);
     }
 
-    Blog::shouldReceive('pinnedPosts')->once()->with(3)->andReturn(new Collection([$lead]));
-    Blog::shouldReceive('latestPosts')->once()->with(8)->andReturn(new Collection([$lead, $firstFallback, $secondFallback]));
+    Blog::shouldReceive('pinnedPosts')->once()->with(5)->andReturn(new Collection([$lead]));
+    Blog::shouldReceive('latestPosts')->once()->with(8)->andReturn(new Collection([$lead, $firstFallback, $secondFallback, $thirdFallback, $fourthFallback]));
     Blog::shouldReceive('popularPosts')->once()->with(5)->andReturn(new Collection);
     Blog::shouldReceive('formatDate')->andReturn('October 8, 2026');
     Blog::shouldReceive('categories')->andReturn(new Collection);
@@ -53,7 +57,9 @@ it('fills the magazine issue sidebar with latest articles when only the lead is 
 
     $this->view('blog::home')
         ->assertSee('First fallback story')
-        ->assertSee('Second fallback story');
+        ->assertSee('Second fallback story')
+        ->assertSee('Third fallback story')
+        ->assertSee('Fourth fallback story');
 });
 
 it('renders the posts index page', function () {

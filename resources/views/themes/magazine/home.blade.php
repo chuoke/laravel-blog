@@ -1,7 +1,7 @@
 @extends(config('blog.layout') ?? 'blog::layout')
 @php
     $locale = app()->getLocale();
-    $pinnedPosts = Blog::pinnedPosts(3);
+    $pinnedPosts = Blog::pinnedPosts(5);
     $latestPosts = Blog::latestPosts(8);
     $popularPosts = Blog::popularPosts(5);
 
@@ -11,7 +11,7 @@
         ->reject(fn ($post) => $lead && $post->is($lead))
         ->merge($stories)
         ->unique('id')
-        ->take(2);
+        ->take(4);
 @endphp
 
 @section('title', config('app.name'))
@@ -34,18 +34,18 @@
                     <p class="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
                         {{ $lead->category?->name[$locale] ?? 'Cover Story' }} · {{ Blog::formatDate($lead->published_at, 'short', $lead->language) }}
                     </p>
-                    <h1 class="font-serif text-3xl font-black leading-[0.98] tracking-[-0.04em] text-balance transition-colors duration-200 [@media(hover:hover)]:group-hover:text-primary sm:text-5xl">{{ $lead->title }}</h1>
+                    <h1 class="font-serif text-3xl font-black leading-[1.08] tracking-[-0.04em] text-balance transition-colors duration-200 [@media(hover:hover)]:group-hover:text-primary sm:text-5xl">{{ $lead->title }}</h1>
                     @if($lead->summary)
                         <p class="mt-4 max-w-2xl text-base leading-relaxed text-base-content/65 text-pretty">{{ $lead->summary }}</p>
                     @endif
                 </div>
             </a>
 
-            <div class="mt-8 border-t border-base-content/20 pt-2 lg:col-span-5 lg:mt-0 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
-                <p class="py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-base-content/45">{{ __('blog::ui.also_in_issue') }}</p>
-                <div class="divide-y divide-base-content/20">
+            <div class="mt-8 border-t border-base-content/20 pt-2 lg:col-span-5 lg:mt-0 lg:flex lg:h-full lg:flex-col lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+                <p class="py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-base-content/45 lg:shrink-0">{{ __('blog::ui.also_in_issue') }}</p>
+                <div class="divide-y divide-base-content/20 lg:flex lg:flex-1 lg:flex-col">
                     @foreach($secondaryPosts as $sub)
-                        <a href="{{ route('blog.posts.show', $sub) }}" class="group block py-5 first:pt-2">
+                        <a href="{{ route('blog.posts.show', $sub) }}" class="group block py-5 first:pt-2 lg:flex-1">
                             <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{{ $sub->category?->name[$locale] ?? __('blog::ui.feature') }}</p>
                             <h2 class="mt-2 font-serif text-2xl font-bold leading-[1.08] tracking-[-0.02em] transition-colors duration-200 [@media(hover:hover)]:group-hover:text-primary">{{ $sub->title }}</h2>
                             <p class="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-base-content/45">{{ Blog::formatDate($sub->published_at, 'short', $sub->language) }}</p>
