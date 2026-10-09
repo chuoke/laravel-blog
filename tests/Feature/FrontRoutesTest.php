@@ -27,6 +27,16 @@ it('uses matching article limits for both newsroom sidebars', function () {
     $this->view('blog::home')->assertSee(__('blog::ui.trending'));
 });
 
+it('allocates four articles to the newsroom left column without repeating them below', function () {
+    $template = file_get_contents(__DIR__.'/../../resources/views/themes/newsroom/home.blade.php');
+
+    expect($template)
+        ->toContain('$other->take(4)')
+        ->toContain('$other->skip(4)->take(3)')
+        ->toContain('$other->skip(7)')
+        ->toContain('line-clamp-3');
+});
+
 it('fills the magazine issue sidebar with latest articles when only the lead is pinned', function () {
     $lead = new Post(['id' => 1, 'uid' => 'lead', 'slug' => 'lead', 'title' => 'Lead story', 'published_at' => now(), 'language' => 'en']);
     $firstFallback = new Post(['id' => 2, 'uid' => 'first', 'slug' => 'first', 'title' => 'First fallback story', 'published_at' => now(), 'language' => 'en']);
