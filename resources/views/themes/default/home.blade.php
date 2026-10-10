@@ -11,6 +11,8 @@
 
 @section('title', config('app.name'))
 
+@section('seo_default', '1')
+
 @section('content')
 <div class="max-w-6xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
 

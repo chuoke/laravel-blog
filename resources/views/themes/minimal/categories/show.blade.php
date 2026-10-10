@@ -6,6 +6,8 @@
 
 @section('title', ($category->name[$locale] ?? array_values($category->name)[0] ?? __('blog::ui.fallback_category')))
 
+@section('seo_default', '1')
+
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
     <div class="mb-10">

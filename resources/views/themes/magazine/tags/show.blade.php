@@ -6,6 +6,8 @@
 
 @section('title', '#' . ($tag->name[$locale] ?? array_values($tag->name)[0] ?? __('blog::ui.fallback_tag')))
 
+@section('seo_default', '1')
+
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
     @include('blog::partials.masthead')

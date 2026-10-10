@@ -3,6 +3,7 @@
 use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Facades\Blog;
+use Chuoke\Blog\Models\Category;
 use Chuoke\Blog\Models\Post;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User;
@@ -13,6 +14,47 @@ it('renders the blog homepage using the resolved theme views', function () {
     $response = $this->get(route('blog.home'));
 
     $response->assertOk();
+});
+
+it('renders configured SEO metadata for the homepage', function () {
+    config([
+        'blog.author_model' => User::class,
+        'blog.seo.description' => ['en' => 'A tailored description for the blog homepage.'],
+    ]);
+
+    $this->get(route('blog.home'))
+        ->assertOk()
+        ->assertSee('<title>Guides, product stories, and updates — Laravel</title>', false)
+        ->assertSee('<meta name="description" content="A tailored description for the blog homepage.">', false);
+});
+
+it('uses the category description for category SEO metadata', function () {
+    config(['blog.author_model' => User::class]);
+
+    $category = Category::create([
+        'name' => ['en' => 'Product guides'],
+        'slug' => 'product-guides',
+        'description' => ['en' => 'Step-by-step guidance for getting more value from the product.'],
+    ]);
+
+    $this->get(route('blog.category.show', $category->slug))
+        ->assertOk()
+        ->assertSee('<title>Product guides articles — Laravel</title>', false)
+        ->assertSee('<meta name="description" content="Step-by-step guidance for getting more value from the product.">', false);
+});
+
+it('marks search pages as noindex and preserves paginated archive canonicals', function () {
+    config(['blog.author_model' => User::class]);
+
+    $this->get(route('blog.posts.index', ['search' => 'shortcut']))
+        ->assertOk()
+        ->assertSee('<meta name="robots" content="noindex,follow">', false)
+        ->assertSee('<link rel="canonical" href="http://localhost/blog/posts">', false);
+
+    $this->get(route('blog.posts.index', ['page' => 2]))
+        ->assertOk()
+        ->assertSee('<title>Latest articles — Page 2 — Laravel</title>', false)
+        ->assertSee('<link rel="canonical" href="http://localhost/blog/posts?page=2">', false);
 });
 
 it('uses matching article limits for both newsroom sidebars', function () {
@@ -130,13 +172,15 @@ it('lets a host app override a theme view by publishing it to resource_path', fu
     if (! is_dir($overrideDir)) {
         mkdir($overrideDir, 0777, true);
     }
-    file_put_contents($overrideFile, "@extends('blog::layout')\n@section('content')\nCUSTOM_THEME_OVERRIDE_MARKER\n@endsection\n");
+    file_put_contents($overrideFile, "@extends('blog::layout')\n@section('title', 'Custom blog page')\n@section('canonical', 'https://example.test/custom-blog')\n@section('content')\nCUSTOM_THEME_OVERRIDE_MARKER\n@endsection\n");
 
     try {
         $response = $this->get(route('blog.home'));
 
         $response->assertOk();
         $response->assertSeeText('CUSTOM_THEME_OVERRIDE_MARKER');
+        $response->assertSee('<title>Custom blog page — Laravel</title>', false);
+        $response->assertSee('<meta property="og:url" content="https://example.test/custom-blog">', false);
     } finally {
         @unlink($overrideFile);
     }

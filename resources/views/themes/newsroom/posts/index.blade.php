@@ -6,6 +6,8 @@
     $popular = Blog::popularPosts(4);
 @endphp
 @section('title', $search ? __('blog::ui.search_title', ['search' => $search]) : __('blog::ui.latest'))
+@section('seo_default', '1')
+
 @section('content')
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <header class="border-b border-base-content/15 py-10 sm:py-12">

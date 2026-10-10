@@ -5,6 +5,8 @@
 
 @section('title', request('search') ? __('blog::ui.search_title', ['search' => request('search')]) : __('blog::ui.archive'))
 
+@section('seo_default', '1')
+
 @section('content')
 <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12">
     @if(request('search'))

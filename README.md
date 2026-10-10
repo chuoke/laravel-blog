@@ -158,6 +158,12 @@ return [
     // e.g. 'layouts.app'. When null, the theme's own layout is used.
     'layout' => null,
 
+    // Default SEO description for aggregation pages; supports locale keys.
+    'seo' => [
+        'title_separator' => ' — ',
+        'description' => ['en' => 'Practical guides, product stories, and updates.'],
+    ],
+
     // Route prefixes & middleware
     'front_route_prefix' => 'blog',
     'front_middleware'   => ['web'],
@@ -232,7 +238,9 @@ If your project already has a layout with navigation and footer:
 'layout' => 'layouts.app',
 ```
 
-Your layout just needs `@yield('content')` and `@yield('title')`. The blog's content sections will slot right in. Views provide a bare `@section('title')` (no app-name suffix) so your layout controls the final `<title>` composition — the bundled theme layouts render it as `Title — App Name`. Optional sections: `meta_description`, `canonical`, `og_type`, `og_image`.
+Your layout just needs `@yield('content')` and `@yield('title')`. The blog's content sections will slot right in. Views provide a bare `@section('title')` (no app-name suffix) so your layout controls the final `<title>` composition — the bundled theme layouts render it as `Title — App Name`. Optional sections: `meta_description`, `canonical`, `robots`, `og_type`, `og_image`.
+
+Built-in theme layouts generate localized metadata for the home, archive, category, tag, search, and paginated pages. The configured description is used across aggregation pages, except that a category's own description takes priority; search pages are marked `noindex,follow`. A published custom view can keep controlling its title through `@section('title')`. A host layout owns its `<head>` markup and may either render its own metadata or reuse `Chuoke\Blog\Support\SeoMeta`.
 
 ## Blog Facade API
 

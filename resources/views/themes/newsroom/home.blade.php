@@ -7,6 +7,8 @@
     $other = $latest->reject(fn ($post) => $lead && $post->is($lead));
 @endphp
 @section('title', 'News')
+@section('seo_default', '1')
+
 @section('content')
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     @include('blog::partials.masthead')

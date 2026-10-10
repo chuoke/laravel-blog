@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
-        $__blogTitle = trim(View::yieldContent('title'));
-        $pageTitle = $__blogTitle !== '' ? $__blogTitle.' — '.config('app.name', 'Blog') : config('app.name', 'Blog');
+        $seo = app(\Chuoke\Blog\Support\SeoMeta::class)->metadata(
+            trim(View::yieldContent('title')),
+            trim(View::yieldContent('meta_description')),
+            trim(View::yieldContent('seo_default')) === '1',
+        );
+        $canonical = trim(View::yieldContent('canonical')) ?: $seo['canonical'];
+        $robots = trim(View::yieldContent('robots')) ?: $seo['robots'];
     @endphp
-    <title>{{ $pageTitle }}</title>
-    <meta name="description" content="@yield('meta_description', '')">
-    <link rel="canonical" href="@yield('canonical', request()->url())">
-    <meta property="og:title" content="{{ $pageTitle }}">
-    <meta property="og:description" content="@yield('meta_description', '')">
+    <title>{{ $seo['title'] }}</title>
+    <meta name="description" content="{{ $seo['description'] }}">
+    <link rel="canonical" href="{{ $canonical }}">
+    @if($robots)<meta name="robots" content="{{ $robots }}">@endif
+    <meta property="og:title" content="{{ $seo['title'] }}">
+    <meta property="og:description" content="{{ $seo['description'] }}">
     <meta property="og:type" content="@yield('og_type', 'website')">
-    <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:url" content="{{ $canonical }}">
     @hasSection('og_image')<meta property="og:image" content="@yield('og_image')">@endif
 
     <link rel="preconnect" href="https://fonts.googleapis.com">

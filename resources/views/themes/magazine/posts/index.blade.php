@@ -5,6 +5,8 @@
 
 @section('title', request('search') ? __('blog::ui.search_title', ['search' => request('search')]) : __('blog::ui.all_posts'))
 
+@section('seo_default', '1')
+
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
     @include('blog::partials.masthead')
