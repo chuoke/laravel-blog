@@ -5,6 +5,7 @@ use Chuoke\Blog\Dtos\PostCreateData;
 use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\Category;
 use Chuoke\Blog\Models\Post;
+use Chuoke\Blog\Support\ThemeAssets;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User;
 
@@ -130,6 +131,17 @@ it('allocates four articles to the newsroom left column without repeating them b
         ->toContain('$other->skip(4)->take(3)')
         ->toContain('$other->skip(7)')
         ->toContain('line-clamp-3');
+});
+
+it('uses larger top-aligned covers in newsroom article listings', function () {
+    foreach (['posts/index.blade.php', 'categories/show.blade.php'] as $view) {
+        expect(file_get_contents(__DIR__.'/../../resources/views/themes/newsroom/'.$view))
+            ->toContain('sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start');
+    }
+
+    expect(ThemeAssets::css('newsroom'))
+        ->toContain('grid-template-columns:minmax(0,1fr) 12rem')
+        ->toContain('align-items:flex-start');
 });
 
 it('fills the magazine issue sidebar with latest articles when only the lead is pinned', function () {

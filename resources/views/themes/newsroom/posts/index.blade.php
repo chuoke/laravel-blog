@@ -27,7 +27,7 @@
 
             <div class="divide-y divide-base-content/15">
                 @forelse($posts as $post)
-                    <article class="group relative grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_9rem] sm:items-center sm:pl-16">
+                    <article class="group relative grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start sm:pl-16">
                         <time datetime="{{ $post->published_at?->toDateString() }}" class="absolute left-0 top-5 text-[10px] font-bold uppercase leading-tight text-base-content/60 max-sm:hidden">
                             {{ Blog::formatDate($post->published_at, 'monthName', $post->language) }}<br>{{ Blog::formatDate($post->published_at, 'day', $post->language) }}<br><span class="text-[8px]">{{ Blog::formatDate($post->published_at, 'year', $post->language) }}</span>
                         </time>
