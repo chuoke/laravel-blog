@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<string, string> $name Keyed by locale, e.g. ['en' => 'Tech', 'zh' => '技术']
  * @property string $slug
  * @property array<string, string>|null $description Keyed by locale
+ * @property array<string, string>|null $seo_title Keyed by locale
  * @property int|null $parent_id
  * @property int $sort_order
  * @property \Carbon\Carbon|null $created_at
@@ -30,6 +31,7 @@ class Category extends Model
     protected $casts = [
         'name' => 'array',
         'description' => 'array',
+        'seo_title' => 'array',
     ];
 
     public function parent(): BelongsTo

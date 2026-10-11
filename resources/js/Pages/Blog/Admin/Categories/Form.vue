@@ -20,12 +20,13 @@
                     <h2 class="font-bold">{{ t('blogAdmin.taxonomy.categoryTranslations') }}</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[760px] table-fixed border-collapse text-left">
+                    <table class="w-full min-w-[960px] table-fixed border-collapse text-left">
                         <thead>
                             <tr class="border-b border-base-300 bg-base-200/50 text-xs font-bold uppercase tracking-wider text-base-content/70">
                                 <th class="w-32 px-6 py-4">{{ t('blogAdmin.common.language') }}</th>
-                                <th class="w-64 px-6 py-4">{{ t('blogAdmin.taxonomy.name') }}</th>
+                                <th class="w-52 px-6 py-4">{{ t('blogAdmin.taxonomy.name') }}</th>
                                 <th class="px-6 py-4">{{ t('blogAdmin.taxonomy.description') }}</th>
+                                <th class="w-72 px-6 py-4">{{ t('blogAdmin.taxonomy.seoTitle') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-base-200/80">
@@ -38,6 +39,10 @@
                                 <td class="px-6 py-4 align-top">
                                     <textarea v-model="form.description[code]" rows="2" :placeholder="t('blogAdmin.taxonomy.categoryDescriptionExample', { locale: label })" class="w-full resize-none rounded-xl border-0 bg-base-200 px-4 py-3 text-sm focus:bg-base-100 focus:ring-2 focus:ring-primary"></textarea>
                                     <div v-if="form.errors[`description.${code}`]" class="mt-1.5 text-xs font-medium text-error">{{ form.errors[`description.${code}`] }}</div>
+                                </td>
+                                <td class="px-6 py-4 align-top">
+                                    <input v-model="form.seo_title[code]" type="text" :placeholder="t('blogAdmin.taxonomy.categorySeoTitleExample', { locale: label })" class="w-full rounded-xl border-0 bg-base-200 px-4 py-3 text-sm font-medium focus:bg-base-100 focus:ring-2 focus:ring-primary" />
+                                    <div v-if="form.errors[`seo_title.${code}`]" class="mt-1.5 text-xs font-medium text-error">{{ form.errors[`seo_title.${code}`] }}</div>
                                 </td>
                             </tr>
                         </tbody>
@@ -75,6 +80,7 @@ const defaultLocale = Object.keys(props.locales)[0];
 const form = useForm({
     name: Object.fromEntries(Object.keys(props.locales).map((code) => [code, props.category?.name[code] ?? ''])),
     description: Object.fromEntries(Object.keys(props.locales).map((code) => [code, props.category?.description?.[code] ?? ''])),
+    seo_title: Object.fromEntries(Object.keys(props.locales).map((code) => [code, props.category?.seo_title?.[code] ?? ''])),
     sort_order: props.category?.sort_order ?? 0,
 });
 

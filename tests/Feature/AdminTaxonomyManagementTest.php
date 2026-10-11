@@ -25,18 +25,26 @@ it('renders dedicated category create and edit pages', function () {
     $this->post(route('blog.admin.categories.store'), [
         'name' => ['en' => 'Guides', 'zh_CN' => ''],
         'description' => ['en' => 'Helpful guides', 'zh_CN' => ''],
+        'seo_title' => ['en' => 'Guides and practical advice', 'zh_CN' => ''],
         'sort_order' => 3,
     ])->assertRedirect();
 
     $category = Category::firstOrFail();
 
     expect($category->name)->toBe(['en' => 'Guides', 'zh_CN' => null])
-        ->and($category->description)->toBe(['en' => 'Helpful guides', 'zh_CN' => null]);
+        ->and($category->description)->toBe(['en' => 'Helpful guides', 'zh_CN' => null])
+        ->and($category->seo_title)->toBe(['en' => 'Guides and practical advice', 'zh_CN' => null]);
 
     $this->get(route('blog.admin.categories.edit', $category), ['X-Inertia' => 'true'])
         ->assertOk()
         ->assertJsonPath('component', 'Blog/Admin/Categories/Form')
         ->assertJsonPath('props.category.id', $category->id);
+
+    $this->put(route('blog.admin.categories.update', $category), [
+        'seo_title' => ['en' => 'Updated guides title', 'zh_CN' => ''],
+    ])->assertRedirect();
+
+    expect($category->refresh()->seo_title)->toBe(['en' => 'Updated guides title', 'zh_CN' => null]);
 });
 
 it('renders dedicated tag create and edit pages', function () {

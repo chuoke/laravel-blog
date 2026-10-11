@@ -42,7 +42,26 @@ it('resolves configured metadata translation keys', function () {
         ->assertSee('<meta name="description" content="Browse the latest practical guides, product stories, and updates from Laravel.">', false);
 });
 
-it('uses the category description for category SEO metadata', function () {
+it('uses the category SEO title and description for metadata', function () {
+    config([
+        'blog.author_model' => User::class,
+        'blog.seo.title_suffix' => 'Cootab Blog — practical guides and product stories',
+    ]);
+
+    $category = Category::create([
+        'name' => ['en' => 'Product guides'],
+        'slug' => 'product-guides',
+        'description' => ['en' => 'Step-by-step guidance for getting more value from the product.'],
+        'seo_title' => ['en' => 'Product guides and practical advice'],
+    ]);
+
+    $this->get(route('blog.category.show', $category->slug))
+        ->assertOk()
+        ->assertSee('<title>Product guides and practical advice — Cootab Blog — practical guides and product stories</title>', false)
+        ->assertSee('<meta name="description" content="Step-by-step guidance for getting more value from the product.">', false);
+});
+
+it('shows category descriptions in each built-in theme', function () {
     config(['blog.author_model' => User::class]);
 
     $category = Category::create([
@@ -51,10 +70,13 @@ it('uses the category description for category SEO metadata', function () {
         'description' => ['en' => 'Step-by-step guidance for getting more value from the product.'],
     ]);
 
-    $this->get(route('blog.category.show', $category->slug))
-        ->assertOk()
-        ->assertSee('<title>Product guides articles — Laravel</title>', false)
-        ->assertSee('<meta name="description" content="Step-by-step guidance for getting more value from the product.">', false);
+    foreach (['default', 'minimal', 'newsroom', 'magazine'] as $theme) {
+        config(['blog.theme' => $theme]);
+
+        $this->get(route('blog.category.show', $category->slug))
+            ->assertOk()
+            ->assertSee('Step-by-step guidance for getting more value from the product.');
+    }
 });
 
 it('marks search pages as noindex and preserves paginated archive canonicals', function () {

@@ -161,6 +161,7 @@ return [
     // Default metadata for aggregation pages.
     'seo' => [
         'title_separator' => ' — ',
+        'title_suffix' => 'web/common.meta.blog_title_suffix',
         'description' => ['en' => 'Practical guides, product stories, and updates.'],
         'pages' => [
             'home' => [
@@ -246,7 +247,7 @@ If your project already has a layout with navigation and footer:
 
 Your layout just needs `@yield('content')` and `@yield('title')`. The blog's content sections will slot right in. Views provide a bare `@section('title')` (no app-name suffix) so your layout controls the final `<title>` composition — the bundled theme layouts render it as `Title — App Name`. Optional sections: `meta_description`, `canonical`, `robots`, `og_type`, `og_image`.
 
-Built-in theme layouts generate localized metadata for the home, archive, category, tag, search, and paginated pages. Configure each page under blog.seo.pages with a plain string or translation key; values are resolved with Laravel's __() helper, so an unknown key is rendered as plain text. :site, :search, :category, and :tag are available replacements. Page descriptions override the generic blog.seo.description, while a category's own description remains highest priority. Search pages are marked noindex,follow. A published custom view can keep controlling its title through @section('title'). A host layout owns its head markup and may either render its own metadata or reuse Chuoke\Blog\Support\SeoMeta.
+Built-in theme layouts generate localized metadata for the home, archive, category, tag, search, and paginated pages. Configure seo.title_suffix with a plain string or translation key to append a localized brand promise to non-home titles. Configure each page under blog.seo.pages with a plain string or translation key; values are resolved with Laravel's __() helper, so an unknown key is rendered as plain text. :site, :search, :category, and :tag are available replacements. A category may also define a localized seo_title; its description is shown below the heading and used as its meta description. Page descriptions override the generic blog.seo.description, while a category's own description remains highest priority. Search pages are marked noindex,follow. A published custom view can keep controlling its title through @section('title'). A host layout owns its head markup and may either render its own metadata or reuse Chuoke\Blog\Support\SeoMeta.
 
 ## Blog Facade API
 

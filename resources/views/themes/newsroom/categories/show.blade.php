@@ -2,6 +2,7 @@
 @php
     $locale = app()->getLocale();
     $categoryName = $category->name[$locale] ?? array_values($category->name)[0] ?? __('blog::ui.fallback_category');
+    $categoryDescription = $category->description[$locale] ?? array_values($category->description ?? [])[0] ?? null;
     $posts = Blog::paginatedPosts(['category_id' => $category->id], 12);
     $popular = Blog::popularPosts(4);
 @endphp
@@ -13,7 +14,11 @@
     <header class="border-b border-base-content/15 py-10 sm:py-12">
         <p class="text-[10px] font-black uppercase tracking-[.16em] text-primary">{{ __('blog::ui.browse_section') }}</p>
         <h1 class="mt-2 text-4xl font-black tracking-[-.055em] sm:text-5xl">{{ $categoryName }}</h1>
-        <p class="mt-4 max-w-xl text-sm leading-relaxed text-base-content/70">{{ __('blog::ui.category_intro', ['category' => $categoryName]) }}</p>
+        @if($categoryDescription)
+            <p class="mt-4 max-w-xl text-sm leading-relaxed text-base-content/70">{{ $categoryDescription }}</p>
+        @else
+            <p class="mt-4 max-w-xl text-sm leading-relaxed text-base-content/70">{{ __('blog::ui.category_intro', ['category' => $categoryName]) }}</p>
+        @endif
     </header>
 
     <div class="grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10">

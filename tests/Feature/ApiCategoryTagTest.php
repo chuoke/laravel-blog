@@ -13,12 +13,14 @@ it('creates a category via the API using the multi-language name format', functi
     $response = $this->postJson('/api/blog/categories', [
         'name' => ['en' => 'Tech News'],
         'description' => ['en' => 'Latest tech updates'],
+        'seo_title' => ['en' => 'Technology news and updates'],
     ]);
 
     $response->assertCreated();
 
     $this->assertDatabaseHas('blog_categories', [
         'name' => json_encode(['en' => 'Tech News']),
+        'seo_title' => json_encode(['en' => 'Technology news and updates']),
     ]);
 });
 

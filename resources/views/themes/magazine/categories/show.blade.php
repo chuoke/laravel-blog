@@ -1,6 +1,7 @@
 @extends(config('blog.layout') ?? 'blog::layout')
 @php
     $locale = app()->getLocale();
+    $categoryDescription = $category->description[$locale] ?? array_values($category->description ?? [])[0] ?? null;
     $posts = Blog::paginatedPosts(['category_id' => $category->id], 12);
 @endphp
 
@@ -16,6 +17,9 @@
         <div class="mb-6 border-b-2 border-primary pb-2">
             <p class="text-[10px] font-bold uppercase tracking-widest text-primary">{{ __('blog::ui.fallback_category') }}</p>
             <h1 class="text-2xl font-extrabold uppercase tracking-tight">{{ $category->name[$locale] ?? array_values($category->name)[0] }}</h1>
+            @if($categoryDescription)
+                <p class="mt-3 max-w-2xl text-sm leading-relaxed text-base-content/65">{{ $categoryDescription }}</p>
+            @endif
         </div>
         <div class="divide-y divide-base-content/20">
             @forelse($posts as $post)

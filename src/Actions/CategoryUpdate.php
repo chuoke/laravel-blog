@@ -13,6 +13,7 @@ class CategoryUpdate
         $updateAttributes = array_filter([
             'name' => $data->name,
             'description' => $data->description,
+            'seo_title' => $data->seoTitle,
             'parent_id' => $data->parentId,
             'sort_order' => $data->sortOrder,
         ], fn ($value) => $value !== null);

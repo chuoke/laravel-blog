@@ -82,6 +82,7 @@ return [
     */
     'seo' => [
         'title_separator' => ' — ',
+        'title_suffix' => null,
         'description' => [],
         'pages' => [
             'home' => [

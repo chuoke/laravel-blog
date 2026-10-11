@@ -17,6 +17,7 @@ class CategoryCreate
             'name' => $data->name,
             'slug' => Str::slug($slugName).'-'.strtolower(Str::random(4)),
             'description' => $data->description,
+            'seo_title' => $data->seoTitle,
             'parent_id' => $data->parentId,
             'sort_order' => $data->sortOrder,
         ]);

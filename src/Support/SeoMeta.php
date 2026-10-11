@@ -29,9 +29,10 @@ class SeoMeta
     {
         $site = config('app.name', 'Blog');
         $usesSectionTitle = ! $useDefaultTitle && $sectionTitle !== '';
+        $categorySeoTitle = $resource instanceof Category ? $this->localized($resource->seo_title) : null;
         $title = $usesSectionTitle
             ? $sectionTitle
-            : $this->pageValue($this->pageKey($routeName), 'title', $resource, $site) ?? match ($routeName) {
+            : $categorySeoTitle ?? $this->pageValue($this->pageKey($routeName), 'title', $resource, $site) ?? match ($routeName) {
                 'blog.home' => __('blog::ui.seo_home_title', ['site' => $site]),
                 'blog.posts.index' => request()->filled('search')
                     ? __('blog::ui.seo_search_title', ['search' => request()->string('search')->trim()->value()])
@@ -53,7 +54,9 @@ class SeoMeta
             return $title !== '' ? $title : $site;
         }
 
-        return $title !== '' ? $title.config('blog.seo.title_separator', ' — ').$site : $site;
+        $suffix = $this->titleSuffix($site);
+
+        return $title !== '' ? $title.config('blog.seo.title_separator', ' — ').$suffix : $suffix;
     }
 
     private function description(?string $routeName, string $sectionDescription, Category|Tag|null $resource): string
@@ -116,6 +119,15 @@ class SeoMeta
             'blog.tag.show' => 'tag',
             default => null,
         };
+    }
+
+    private function titleSuffix(string $site): string
+    {
+        $suffix = config('blog.seo.title_suffix');
+
+        return is_string($suffix) && filled($suffix)
+            ? Str::squish((string) __($suffix, ['site' => $site]))
+            : $site;
     }
 
     private function resource(?string $routeName): Category|Tag|null

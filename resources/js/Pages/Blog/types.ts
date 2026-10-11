@@ -3,6 +3,7 @@ export interface Category {
     name: Record<string, string>;
     slug?: string;
     description?: Record<string, string>;
+    seo_title?: Record<string, string>;
     sort_order?: number;
 }
 

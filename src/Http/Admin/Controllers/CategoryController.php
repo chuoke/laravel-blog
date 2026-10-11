@@ -41,6 +41,8 @@ class CategoryController extends Controller
             'name.*' => 'nullable|string|max:255',
             'description' => 'nullable|array:'.$localeKeys,
             'description.*' => 'nullable|string',
+            'seo_title' => 'nullable|array:'.$localeKeys,
+            'seo_title.*' => 'nullable|string|max:255',
             'parent_id' => 'nullable|integer',
             'sort_order' => 'nullable|integer',
         ]);
@@ -48,6 +50,7 @@ class CategoryController extends Controller
         $data = new CategoryCreateData(
             name: $validated['name'],
             description: $validated['description'] ?? null,
+            seoTitle: $validated['seo_title'] ?? null,
             parentId: $validated['parent_id'] ?? null,
             sortOrder: (int) ($validated['sort_order'] ?? 0),
         );
@@ -78,6 +81,8 @@ class CategoryController extends Controller
             'name.*' => 'nullable|string|max:255',
             'description' => 'nullable|array:'.$localeKeys,
             'description.*' => 'nullable|string',
+            'seo_title' => 'nullable|array:'.$localeKeys,
+            'seo_title.*' => 'nullable|string|max:255',
             'parent_id' => 'nullable|integer',
             'sort_order' => 'nullable|integer',
         ]);
@@ -85,6 +90,7 @@ class CategoryController extends Controller
         $data = new CategoryUpdateData(
             name: $validated['name'] ?? null,
             description: $validated['description'] ?? null,
+            seoTitle: $validated['seo_title'] ?? null,
             parentId: $validated['parent_id'] ?? null,
             sortOrder: isset($validated['sort_order']) ? (int) $validated['sort_order'] : null,
         );
