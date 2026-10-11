@@ -24,7 +24,7 @@ return [
     'newsroom' => '编辑部',
     'search_description' => '以下是与搜索内容相关的文章。',
     'latest_description' => ':site News 的最新实践文章、观点与发布信息。',
-    'seo_home_title' => '使用指南、产品故事与最新动态',
+    'seo_home_title' => ':site Blog｜使用指南、产品故事与最新动态',
     'seo_home_description' => '浏览 :site 的实用使用指南、产品故事与最新动态。',
     'seo_archive_title' => '最新文章',
     'seo_archive_description' => '浏览 :site 最新的实用使用指南、产品故事与动态。',

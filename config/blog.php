@@ -76,13 +76,35 @@ return [
     | SEO
     |--------------------------------------------------------------------------
     |
-    | Default metadata for blog aggregation pages. Use locale keys when the
-    | site has more than one language, for example ['en' => '...', 'zh' => '...'].
+    | Default metadata for blog aggregation pages. Page titles and descriptions
+    | accept plain text or a translation key.
     |
     */
     'seo' => [
         'title_separator' => ' — ',
         'description' => [],
+        'pages' => [
+            'home' => [
+                'title' => null,
+                'description' => null,
+            ],
+            'archive' => [
+                'title' => null,
+                'description' => null,
+            ],
+            'search' => [
+                'title' => null,
+                'description' => null,
+            ],
+            'category' => [
+                'title' => null,
+                'description' => null,
+            ],
+            'tag' => [
+                'title' => null,
+                'description' => null,
+            ],
+        ],
     ],
 
     /*

@@ -14,7 +14,11 @@
 @section('content')
 <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
     <header class="max-w-4xl pb-8 sm:pb-10">
-        <p class="text-[10px] font-black uppercase tracking-[.16em] text-primary">{{ $post->category?->name[$locale] ?? __('blog::ui.fallback_news') }}</p>
+        @if($post->category)
+            <a href="{{ route('blog.category.show', $post->category->slug) }}" class="text-[10px] font-black uppercase tracking-[.16em] text-primary hover:underline">{{ $post->category->name[$locale] ?? __('blog::ui.fallback_news') }}</a>
+        @else
+            <p class="text-[10px] font-black uppercase tracking-[.16em] text-primary">{{ __('blog::ui.fallback_news') }}</p>
+        @endif
         <h1 class="mt-3 text-4xl font-black wrap-break-word leading-[1.05] tracking-[-.06em] text-balance sm:text-6xl">{{ $post->title }}</h1>
         @if($post->summary)<p class="mt-6 max-w-2xl text-base leading-relaxed text-base-content/70 sm:text-lg">{{ $post->summary }}</p>@endif
         <p class="mt-6 text-[10px] font-bold uppercase tracking-[.12em] text-base-content/60">{{ __('blog::ui.published', ['date' => Blog::formatDate($post->published_at, 'long', $post->language), 'count' => number_format($post->view_count)]) }}</p>

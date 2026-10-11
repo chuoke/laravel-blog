@@ -19,13 +19,27 @@ it('renders the blog homepage using the resolved theme views', function () {
 it('renders configured SEO metadata for the homepage', function () {
     config([
         'blog.author_model' => User::class,
-        'blog.seo.description' => ['en' => 'A tailored description for the blog homepage.'],
+        'blog.seo.pages.home.title' => ':site Blog — A tailored homepage title',
+        'blog.seo.pages.home.description' => 'A tailored description for :site.',
     ]);
 
     $this->get(route('blog.home'))
         ->assertOk()
-        ->assertSee('<title>Guides, product stories, and updates — Laravel</title>', false)
-        ->assertSee('<meta name="description" content="A tailored description for the blog homepage.">', false);
+        ->assertSee('<title>Laravel Blog — A tailored homepage title</title>', false)
+        ->assertSee('<meta name="description" content="A tailored description for Laravel.">', false);
+});
+
+it('resolves configured metadata translation keys', function () {
+    config([
+        'blog.author_model' => User::class,
+        'blog.seo.pages.home.title' => 'blog::ui.seo_archive_title',
+        'blog.seo.pages.home.description' => 'blog::ui.seo_archive_description',
+    ]);
+
+    $this->get(route('blog.home'))
+        ->assertOk()
+        ->assertSee('<title>Latest articles</title>', false)
+        ->assertSee('<meta name="description" content="Browse the latest practical guides, product stories, and updates from Laravel.">', false);
 });
 
 it('uses the category description for category SEO metadata', function () {
@@ -143,6 +157,31 @@ it('shows posts by their public uid and slug', function () {
 
     $this->get(route('blog.posts.show', $post->uid))->assertNotFound();
     $this->get(route('blog.posts.show', $post->slug))->assertNotFound();
+});
+
+it('links the newsroom post category to its archive', function () {
+    config([
+        'blog.author_model' => User::class,
+        'blog.theme' => 'newsroom',
+    ]);
+
+    $category = Category::create([
+        'name' => ['en' => 'Product guides'],
+        'slug' => 'product-guides',
+    ]);
+
+    $post = (new PostCreate)->execute(new PostCreateData(
+        title: 'A published post',
+        content: 'content',
+        authorId: 1,
+        categoryId: $category->id,
+        status: 'published',
+        publishedAt: now(),
+    ));
+
+    $this->get(route('blog.posts.show', $post))
+        ->assertOk()
+        ->assertSee('<a href="'.route('blog.category.show', $category->slug).'"', false);
 });
 
 it('renders the homepage sidebar archives list when published posts exist', function () {

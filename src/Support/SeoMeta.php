@@ -27,25 +27,31 @@ class SeoMeta
 
     private function title(?string $routeName, string $sectionTitle, Category|Tag|null $resource, bool $useDefaultTitle): string
     {
-        $title = ! $useDefaultTitle && $sectionTitle !== '' ? $sectionTitle : match ($routeName) {
-            'blog.home' => __('blog::ui.seo_home_title'),
-            'blog.posts.index' => request()->filled('search')
-                ? __('blog::ui.seo_search_title', ['search' => request()->string('search')->trim()->value()])
-                : __('blog::ui.seo_archive_title'),
-            'blog.category.show' => $resource instanceof Category
-                ? __('blog::ui.seo_category_title', ['category' => $this->name($resource)])
-                : $sectionTitle,
-            'blog.tag.show' => $resource instanceof Tag
-                ? __('blog::ui.seo_tag_title', ['tag' => $this->name($resource)])
-                : $sectionTitle,
-            default => $sectionTitle,
-        };
+        $site = config('app.name', 'Blog');
+        $usesSectionTitle = ! $useDefaultTitle && $sectionTitle !== '';
+        $title = $usesSectionTitle
+            ? $sectionTitle
+            : $this->pageValue($this->pageKey($routeName), 'title', $resource, $site) ?? match ($routeName) {
+                'blog.home' => __('blog::ui.seo_home_title', ['site' => $site]),
+                'blog.posts.index' => request()->filled('search')
+                    ? __('blog::ui.seo_search_title', ['search' => request()->string('search')->trim()->value()])
+                    : __('blog::ui.seo_archive_title'),
+                'blog.category.show' => $resource instanceof Category
+                    ? __('blog::ui.seo_category_title', ['category' => $this->name($resource)])
+                    : $sectionTitle,
+                'blog.tag.show' => $resource instanceof Tag
+                    ? __('blog::ui.seo_tag_title', ['tag' => $this->name($resource)])
+                    : $sectionTitle,
+                default => $sectionTitle,
+            };
 
         if ($this->page() > 1) {
             $title = __('blog::ui.seo_page_title', ['title' => $title, 'page' => $this->page()]);
         }
 
-        $site = config('app.name', 'Blog');
+        if ($routeName === 'blog.home' && ! $usesSectionTitle) {
+            return $title !== '' ? $title : $site;
+        }
 
         return $title !== '' ? $title.config('blog.seo.title_separator', ' — ').$site : $site;
     }
@@ -64,13 +70,13 @@ class SeoMeta
             }
         }
 
-        $configuredDescription = $this->configuredDescription();
+        $site = config('app.name', 'Blog');
+        $configuredDescription = $this->pageValue($this->pageKey($routeName), 'description', $resource, $site)
+            ?? $this->configuredDescription();
 
         if ($configuredDescription !== null) {
             return $configuredDescription;
         }
-
-        $site = config('app.name', 'Blog');
 
         return match ($routeName) {
             'blog.home' => __('blog::ui.seo_home_description', ['site' => $site]),
@@ -101,6 +107,17 @@ class SeoMeta
         return max(1, request()->integer('page', 1));
     }
 
+    private function pageKey(?string $routeName): ?string
+    {
+        return match ($routeName) {
+            'blog.home' => 'home',
+            'blog.posts.index' => request()->filled('search') ? 'search' : 'archive',
+            'blog.category.show' => 'category',
+            'blog.tag.show' => 'tag',
+            default => null,
+        };
+    }
+
     private function resource(?string $routeName): Category|Tag|null
     {
         $slug = request()->route()?->parameter('slug');
@@ -117,6 +134,25 @@ class SeoMeta
         return $this->localized($resource->name) ?? $resource->slug;
     }
 
+    private function pageValue(?string $page, string $field, Category|Tag|null $resource, string $site): ?string
+    {
+        if ($page === null) {
+            return null;
+        }
+
+        $value = config("blog.seo.pages.{$page}.{$field}");
+        $replace = [
+            'site' => $site,
+            'search' => request()->string('search')->trim()->value(),
+            'category' => $resource instanceof Category ? $this->name($resource) : '',
+            'tag' => $resource instanceof Tag ? $this->name($resource) : '',
+        ];
+
+        $text = is_string($value) ? $value : null;
+
+        return filled($text) ? Str::squish((string) __($text, $replace)) : null;
+    }
+
     /**
      * @param  array<string, string>|null  $values
      */
@@ -127,7 +163,14 @@ class SeoMeta
         }
 
         $locale = app()->getLocale();
-        $value = $values[$locale] ?? $values[Str::before($locale, '_')] ?? $values[Str::before($locale, '-')] ?? reset($values);
+        $fallbackLocale = (string) config('app.fallback_locale', 'en');
+        $value = $values[$locale]
+            ?? $values[Str::before($locale, '_')]
+            ?? $values[Str::before($locale, '-')]
+            ?? $values[$fallbackLocale]
+            ?? $values[Str::before($fallbackLocale, '_')]
+            ?? $values[Str::before($fallbackLocale, '-')]
+            ?? reset($values);
 
         return filled($value) ? Str::squish((string) $value) : null;
     }

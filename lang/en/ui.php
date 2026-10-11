@@ -24,7 +24,7 @@ return [
     'newsroom' => 'The newsroom',
     'search_description' => 'Stories matching your search across the newsroom.',
     'latest_description' => 'The newest practical stories, ideas, and releases from :site News.',
-    'seo_home_title' => 'Guides, product stories, and updates',
+    'seo_home_title' => ':site Blog — Guides, product stories, and updates',
     'seo_home_description' => 'Explore practical guides, product stories, and updates from :site.',
     'seo_archive_title' => 'Latest articles',
     'seo_archive_description' => 'Browse the latest practical guides, product stories, and updates from :site.',
