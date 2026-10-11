@@ -7,9 +7,9 @@ readonly class CategoryUpdateData
     public function __construct(
         public ?array $name = null,
         public ?array $description = null,
-        public ?array $seoTitle = null,
         public ?int $parentId = null,
         public ?int $sortOrder = null,
+        public ?array $seoTitle = null,
     ) {
     }
 }
