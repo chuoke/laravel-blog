@@ -4,6 +4,8 @@
     $locale = app()->getLocale();
     $posts = Blog::paginatedPosts(['search' => $search], 12);
     $popular = Blog::popularPosts(4);
+    $archiveTitle = config('blog.content.pages.archive.title');
+    $archiveDescription = config('blog.content.pages.archive.description');
 @endphp
 @section('title', $search ? __('blog::ui.search_title', ['search' => $search]) : __('blog::ui.latest'))
 @section('seo_default', '1')
@@ -12,8 +14,8 @@
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <header class="border-b border-base-content/15 py-10 sm:py-12">
         <p class="text-[10px] font-black uppercase tracking-[.16em] text-primary">{{ $search ? __('blog::ui.search_results') : __('blog::ui.newsroom') }}</p>
-        <h1 class="mt-2 text-4xl font-black tracking-[-.055em] sm:text-5xl">{{ $search ? '“'.$search.'”' : __('blog::ui.latest_posts') }}</h1>
-        <p class="mt-4 max-w-xl text-sm leading-relaxed text-base-content/70">{{ $search ? __('blog::ui.search_description') : __('blog::ui.latest_description', ['site' => config('app.name')]) }}</p>
+        <h1 class="mt-2 text-4xl font-black tracking-[-.055em] sm:text-5xl">{{ $search ? '“'.$search.'”' : (filled($archiveTitle) ? __($archiveTitle, ['site' => config('app.name')]) : __('blog::ui.latest_posts')) }}</h1>
+        <p class="mt-4 max-w-xl text-sm leading-relaxed text-base-content/70">{{ $search ? __('blog::ui.search_description') : (filled($archiveDescription) ? __($archiveDescription, ['site' => config('app.name')]) : __('blog::ui.latest_description', ['site' => config('app.name')])) }}</p>
     </header>
 
     <div class="grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10">

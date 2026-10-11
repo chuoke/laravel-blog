@@ -249,6 +249,8 @@ Your layout just needs `@yield('content')` and `@yield('title')`. The blog's con
 
 Built-in theme layouts generate localized metadata for the home, archive, category, tag, search, and paginated pages. Configure seo.title_suffix with a plain string or translation key to append a localized brand promise to non-home titles. Configure each page under blog.seo.pages with a plain string or translation key; values are resolved with Laravel's __() helper, so an unknown key is rendered as plain text. :site, :search, :category, and :tag are available replacements. A category may also define a localized seo_title; its description is shown below the heading and used as its meta description. Page descriptions override the generic blog.seo.description, while a category's own description remains highest priority. Search pages are marked noindex,follow. A published custom view can keep controlling its title through @section('title'). A host layout owns its head markup and may either render its own metadata or reuse Chuoke\Blog\Support\SeoMeta.
 
+Use `blog.content.pages.archive.title` and `blog.content.pages.archive.description` to customize the visible heading and introduction on the non-search article list. Values accept plain text or a translation key and support the `:site` replacement.
+
 ## Blog Facade API
 
 The `Blog` facade is the primary data interface. Themes call it directly in Blade templates — controllers stay thin.

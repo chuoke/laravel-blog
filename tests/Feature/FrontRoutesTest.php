@@ -42,6 +42,23 @@ it('resolves configured metadata translation keys', function () {
         ->assertSee('<meta name="description" content="Browse the latest practical guides, product stories, and updates from Laravel.">', false);
 });
 
+it('uses configured archive page content in each built-in theme', function () {
+    config([
+        'blog.author_model' => User::class,
+        'blog.content.pages.archive.title' => 'blog::ui.latest_posts',
+        'blog.content.pages.archive.description' => 'blog::ui.latest_description',
+    ]);
+
+    foreach (['default', 'minimal', 'newsroom', 'magazine'] as $theme) {
+        config(['blog.theme' => $theme]);
+
+        $this->get(route('blog.posts.index'))
+            ->assertOk()
+            ->assertSee('Latest posts')
+            ->assertSee('The newest practical stories, ideas, and releases from Laravel News.');
+    }
+});
+
 it('uses the category SEO title and description for metadata', function () {
     config([
         'blog.author_model' => User::class,
@@ -94,11 +111,11 @@ it('marks search pages as noindex and preserves paginated archive canonicals', f
 });
 
 it('uses matching article limits for both newsroom sidebars', function () {
-    Blog::shouldReceive('latestPosts')->once()->with(12)->andReturn(new Collection);
-    Blog::shouldReceive('popularPosts')->once()->with(3)->andReturn(new Collection);
-    Blog::shouldReceive('pinnedPosts')->once()->with(1)->andReturn(new Collection);
+    Blog::shouldReceive('latestPosts')->once()->with(12)->andReturn(new Collection());
+    Blog::shouldReceive('popularPosts')->once()->with(3)->andReturn(new Collection());
+    Blog::shouldReceive('pinnedPosts')->once()->with(1)->andReturn(new Collection());
     Blog::shouldReceive('formatDate')->once()->andReturn('October 8, 2026');
-    Blog::shouldReceive('categories')->once()->andReturn(new Collection);
+    Blog::shouldReceive('categories')->once()->andReturn(new Collection());
 
     $this->app['view']->getFinder()->prependNamespace('blog', __DIR__.'/../../resources/views/themes/newsroom');
 
@@ -135,11 +152,11 @@ it('fills the magazine issue sidebar with latest articles when only the lead is 
 
     Blog::shouldReceive('pinnedPosts')->once()->with(5)->andReturn(new Collection([$lead]));
     Blog::shouldReceive('latestPosts')->once()->with(8)->andReturn(new Collection([$lead, $firstFallback, $secondFallback, $thirdFallback, $fourthFallback]));
-    Blog::shouldReceive('popularPosts')->once()->with(5)->andReturn(new Collection);
+    Blog::shouldReceive('popularPosts')->once()->with(5)->andReturn(new Collection());
     Blog::shouldReceive('formatDate')->andReturn('October 8, 2026');
-    Blog::shouldReceive('categories')->andReturn(new Collection);
-    Blog::shouldReceive('categoriesWithCount')->once()->andReturn(new Collection);
-    Blog::shouldReceive('tagsWithCount')->once()->andReturn(new Collection);
+    Blog::shouldReceive('categories')->andReturn(new Collection());
+    Blog::shouldReceive('categoriesWithCount')->once()->andReturn(new Collection());
+    Blog::shouldReceive('tagsWithCount')->once()->andReturn(new Collection());
 
     $this->app['view']->getFinder()->prependNamespace('blog', __DIR__.'/../../resources/views/themes/magazine');
 
@@ -161,7 +178,7 @@ it('renders the posts index page', function () {
 it('shows posts by their public uid and slug', function () {
     config(['blog.author_model' => User::class]);
 
-    $post = (new PostCreate)->execute(new PostCreateData(
+    $post = (new PostCreate())->execute(new PostCreateData(
         title: 'A published post',
         content: 'content',
         authorId: 1,
@@ -192,7 +209,7 @@ it('links the newsroom post category to its archive', function () {
         'slug' => 'product-guides',
     ]);
 
-    $post = (new PostCreate)->execute(new PostCreateData(
+    $post = (new PostCreate())->execute(new PostCreateData(
         title: 'A published post',
         content: 'content',
         authorId: 1,
@@ -209,7 +226,7 @@ it('links the newsroom post category to its archive', function () {
 it('renders the homepage sidebar archives list when published posts exist', function () {
     config(['blog.author_model' => User::class]);
 
-    (new PostCreate)->execute(new PostCreateData(
+    (new PostCreate())->execute(new PostCreateData(
         title: 'A published post',
         content: 'content',
         authorId: 1,

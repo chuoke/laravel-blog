@@ -1,6 +1,8 @@
 @extends(config('blog.layout') ?? 'blog::layout')
 @php
     $posts = Blog::paginatedPosts(['search' => request('search')], 12);
+    $archiveTitle = config('blog.content.pages.archive.title');
+    $archiveDescription = config('blog.content.pages.archive.description');
 @endphp
 
 @section('title', request('search') ? __('blog::ui.search_title', ['search' => request('search')]) : __('blog::ui.articles'))
@@ -15,7 +17,10 @@
                 <p class="text-xs font-bold uppercase tracking-[0.14em] text-secondary mb-2">{{ __('blog::ui.results_for') }}</p>
                 <h1 class="font-display font-extrabold text-3xl tracking-[-0.015em] text-balance">&ldquo;{{ request('search') }}&rdquo;</h1>
             @else
-                <h1 class="font-display font-extrabold text-3xl tracking-[-0.015em]">{{ __('blog::ui.articles') }}</h1>
+                <h1 class="font-display font-extrabold text-3xl tracking-[-0.015em]">{{ filled($archiveTitle) ? __($archiveTitle, ['site' => config('app.name')]) : __('blog::ui.articles') }}</h1>
+                @if(filled($archiveDescription))
+                    <p class="mt-3 max-w-xl text-sm leading-relaxed text-base-content/70">{{ __($archiveDescription, ['site' => config('app.name')]) }}</p>
+                @endif
             @endif
         </div>
 
