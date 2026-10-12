@@ -4,6 +4,10 @@
 
 A standalone, themeable blog package for Laravel. Ships with an Inertia/Vue admin panel, a `Blog` facade for on-demand data access, and four ready-to-use front-end themes — all fully driven by DaisyUI color tokens.
 
+## In Use
+
+[Cootab Blog](https://cootab.com/blog) is a live example, publishing product discovery, guides, and practical notes.
+
 ## Features
 
 - **Markdown-based** content with full CommonMark support
