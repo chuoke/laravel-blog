@@ -15,6 +15,6 @@ Route::prefix(config('blog.front_route_prefix', 'blog'))
         Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
         Route::get('/tag/{slug}', [TagController::class, 'show'])->name('tag.show');
         Route::get('/{post}', [PostController::class, 'show'])
-            ->where('post', '[A-Za-z0-9]+-.+')
+            ->where('post', '[A-Za-z0-9]+(?:-.+)?')
             ->name('posts.show');
     });

@@ -18,6 +18,10 @@ class PostController extends Controller
         $post = Blog::post(Str::before($identifier, '-'));
         abort_if(! $post, 404);
 
+        if ($identifier === $post->uid) {
+            return redirect()->route('blog.posts.show', $post, 301);
+        }
+
         Blog::recordView($post);
 
         return view('blog::posts.show', compact('post'));

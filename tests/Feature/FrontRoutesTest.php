@@ -206,7 +206,9 @@ it('shows posts by their public uid and slug', function () {
         ->assertOk()
         ->assertSeeText($post->title);
 
-    $this->get(route('blog.posts.show', $post->uid))->assertNotFound();
+    $this->get(route('blog.posts.show', $post->uid))
+        ->assertRedirect($url)
+        ->assertStatus(301);
     $this->get(route('blog.posts.show', $post->slug))->assertNotFound();
 });
 
