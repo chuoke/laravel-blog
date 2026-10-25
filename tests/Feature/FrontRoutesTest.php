@@ -112,7 +112,7 @@ it('marks search pages as noindex and preserves paginated archive canonicals', f
 });
 
 it('uses matching article limits for both newsroom sidebars', function () {
-    Blog::shouldReceive('latestPosts')->once()->with(12)->andReturn(new Collection());
+    Blog::shouldReceive('latestPosts')->once()->with(14)->andReturn(new Collection());
     Blog::shouldReceive('popularPosts')->once()->with(3)->andReturn(new Collection());
     Blog::shouldReceive('pinnedPosts')->once()->with(1)->andReturn(new Collection());
     Blog::shouldReceive('formatDate')->once()->andReturn('October 8, 2026');
@@ -129,7 +129,7 @@ it('allocates four articles to the newsroom left column without repeating them b
     expect($template)
         ->toContain('$other->take(4)')
         ->toContain('$other->skip(4)->take(3)')
-        ->toContain('$other->skip(7)')
+        ->toContain('$other->skip(7)->take(6)')
         ->toContain('line-clamp-3');
 });
 
