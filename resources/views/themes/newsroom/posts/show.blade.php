@@ -32,7 +32,7 @@
                 </figure>
             @endif
 
-            <div class="prose prose-lg mt-8 max-w-3xl prose-headings:scroll-mt-24 prose-headings:font-black prose-headings:tracking-[-.035em] prose-p:leading-relaxed prose-a:text-primary prose-a:font-medium prose-img:rounded-none prose-pre:bg-neutral prose-pre:text-neutral-content">{!! $renderedPost->html !!}</div>
+            <div class="prose prose-lg mx-auto mt-8 max-w-3xl prose-headings:scroll-mt-24 prose-headings:font-black prose-headings:tracking-[-.035em] prose-p:leading-relaxed prose-a:text-primary prose-a:font-medium prose-img:rounded-none prose-pre:bg-neutral prose-pre:text-neutral-content">{!! $renderedPost->html !!}</div>
 
             <nav aria-label="Adjacent articles" class="mt-10 grid gap-5 border-t border-base-content/15 pt-6 sm:grid-cols-2">
                 @if($previous)
