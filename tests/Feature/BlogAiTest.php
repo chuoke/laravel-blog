@@ -23,6 +23,7 @@ use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
 use Chuoke\Blog\Models\Attachment;
 use Chuoke\Blog\Models\CoverGeneration;
+use Chuoke\Blog\Models\Post;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -253,11 +254,17 @@ it('queues cover generation and returns only the caller task status', function (
     ]);
     Queue::fake();
 
+    $post = app(PostCreate::class)->execute(new PostCreateData(
+        title: 'Post needing a cover',
+        content: 'Article content',
+        authorId: 1,
+    ));
     $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $response = $this->actingAs($user)
         ->post(route('blog.admin.ai.cover'), [
+            'post_id' => $post->id,
             'title' => 'Queued cover',
             'content' => 'The cover is generated in a background job.',
             'language' => 'en',
@@ -279,6 +286,7 @@ it('queues cover generation and returns only the caller task status', function (
 
     $this->actingAs($user)
         ->post(route('blog.admin.ai.cover'), [
+            'post_id' => $post->id,
             'title' => 'Queued cover',
             'content' => 'The cover is generated in a background job.',
             'language' => 'en',
@@ -288,11 +296,13 @@ it('queues cover generation and returns only the caller task status', function (
 
     $this->actingAs($user)
         ->post(route('blog.admin.ai.cover'), [
+            'post_id' => $post->id,
             'title' => 'Another cover',
-            'content' => 'This request must not reuse another article cover.',
+            'content' => 'The article content changed while its cover was queued.',
             'language' => 'en',
         ])
-        ->assertConflict();
+        ->assertAccepted()
+        ->assertJsonPath('id', $coverGeneration->id);
 
     Queue::assertPushedTimes(BlogCoverGenerateJob::class, 1);
 
@@ -313,13 +323,162 @@ it('queues cover generation and returns only the caller task status', function (
         ->assertNotFound();
 });
 
+it('associates a cover generation with an existing post', function (): void {
+    config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
+    Queue::fake();
+
+    $post = app(PostCreate::class)->execute(new PostCreateData(
+        title: 'Post needing a cover',
+        content: 'Article content',
+        authorId: 1,
+    ));
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $response = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $post->id,
+        'title' => $post->title,
+        'content' => $post->content,
+        'language' => $post->language,
+    ]);
+
+    $response->assertAccepted();
+    expect(CoverGeneration::findOrFail($response->json('id'))->post->is($post))->toBeTrue();
+
+    $retry = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        'post_id' => (string) $post->id,
+        'title' => 'Revised post title',
+        'retry' => true,
+    ]);
+    $retry->assertAccepted();
+    expect($retry->json('id'))->not->toBe($response->json('id'));
+});
+
+it('requires a saved post before generating a cover', function (): void {
+    config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
+    Queue::fake();
+
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $this->actingAs($user)->postJson(route('blog.admin.ai.cover'), [
+        'title' => 'Unsaved post',
+        'content' => 'Article content',
+        'language' => 'en',
+    ])->assertUnprocessable()->assertJsonValidationErrors('post_id');
+
+    Queue::assertNothingPushed();
+});
+
+it('retries a pending cover generation and releases its old task', function (): void {
+    config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
+    Queue::fake();
+
+    $post = app(PostCreate::class)->execute(new PostCreateData(title: 'Post to retry', content: 'Article content', authorId: 1));
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+    $request = [
+        'post_id' => $post->id,
+        'title' => 'Cover to retry',
+        'content' => 'Article content',
+        'language' => 'en',
+    ];
+
+    $first = $this->actingAs($user)->post(route('blog.admin.ai.cover'), $request);
+    $first->assertAccepted();
+
+    $second = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        ...$request,
+        'title' => 'Revised cover',
+        'retry' => true,
+    ]);
+    $second->assertAccepted();
+
+    expect($second->json('id'))->not->toBe($first->json('id'));
+    expect(CoverGeneration::findOrFail($first->json('id')))
+        ->status->toBe('failed')
+        ->is_active->toBeNull();
+    Queue::assertPushedTimes(BlogCoverGenerateJob::class, 2);
+});
+
+it('allows different articles to generate covers at the same time', function (): void {
+    config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
+    Queue::fake();
+
+    $firstPost = app(PostCreate::class)->execute(new PostCreateData(title: 'First post', content: 'First content', authorId: 1));
+    $secondPost = app(PostCreate::class)->execute(new PostCreateData(title: 'Second post', content: 'Second content', authorId: 1));
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+
+    $first = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $firstPost->id,
+        'title' => $firstPost->title,
+    ]);
+    $first->assertAccepted();
+
+    $second = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $secondPost->id,
+        'title' => $secondPost->title,
+        'retry' => true,
+    ]);
+    $second->assertAccepted();
+
+    expect(CoverGeneration::findOrFail($first->json('id'))->status)->toBe('pending');
+    expect($second->json('id'))->not->toBe($first->json('id'));
+    Queue::assertPushedTimes(BlogCoverGenerateJob::class, 2);
+
+    $otherUser = new User();
+    $otherUser->forceFill(['id' => 2])->exists = true;
+    $this->actingAs($otherUser)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $firstPost->id,
+        'title' => $firstPost->title,
+    ])->assertConflict();
+
+    CoverGeneration::query()->whereKey($first->json('id'))->update(['updated_at' => now()->subSeconds(3601)]);
+    $replacement = $this->actingAs($otherUser)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $firstPost->id,
+        'title' => $firstPost->title,
+    ]);
+    $replacement->assertAccepted();
+    expect(CoverGeneration::findOrFail($first->json('id'))->status)->toBe('failed');
+
+    CoverGeneration::query()->whereKey($second->json('id'))->update(['status' => 'failed', 'is_active' => null]);
+});
+
+it('expires an unstarted cover generation and permits a new request', function (): void {
+    config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
+    Queue::fake();
+
+    $post = app(PostCreate::class)->execute(new PostCreateData(title: 'Post after stuck cover', content: 'Article content', authorId: 1));
+    $user = new User();
+    $user->forceFill(['id' => 1])->exists = true;
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'data' => ['title' => 'Stuck cover', 'content' => null, 'language' => 'en'],
+    ]);
+    CoverGeneration::query()->whereKey($coverGeneration)->update(['updated_at' => now()->subSeconds(3601)]);
+
+    $this->actingAs($user)
+        ->get(route('blog.admin.ai.cover.status', $coverGeneration))
+        ->assertSuccessful()
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('reason', 'queue_timeout');
+
+    $response = $this->actingAs($user)->post(route('blog.admin.ai.cover'), [
+        'post_id' => $post->id,
+        'title' => 'New cover',
+        'language' => 'en',
+    ]);
+    $response->assertAccepted();
+    expect($response->json('id'))->not->toBe($coverGeneration->id);
+});
+
 it('stores a generated attachment when a queued cover job completes', function (): void {
     Event::fake();
 
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
-        'request_hash' => hash('sha256', 'queued-cover'),
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
@@ -370,7 +529,6 @@ it('keeps a long-running cover generation available for status polling', functio
 
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
-        'request_hash' => hash('sha256', 'expired-cover'),
         'data' => ['title' => 'Queued cover', 'content' => 'Draft content', 'language' => 'en'],
     ]);
     $coverGeneration->update(['created_at' => now()->subMinutes(11)]);
@@ -394,7 +552,6 @@ it('marks a queued cover generation as failed after the job fails', function ():
 
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
-        'request_hash' => hash('sha256', 'failed-cover'),
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
@@ -438,7 +595,6 @@ it('reclaims a stale cover generation after its worker stops', function (): void
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
-        'request_hash' => hash('sha256', 'stale-cover'),
         'status' => 'processing',
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
@@ -469,10 +625,15 @@ it('reclaims a stale cover generation after its worker stops', function (): void
 it('keeps a late successful result over a failed result', function (): void {
     Event::fake();
 
+    $post = app(PostCreate::class)->execute(new PostCreateData(
+        title: 'Post with late cover',
+        content: 'Article content',
+        authorId: 1,
+    ));
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
-        'request_hash' => hash('sha256', 'late-success-cover'),
+        'post_id' => $post->id,
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
@@ -502,6 +663,7 @@ it('keeps a late successful result over a failed result', function (): void {
         ->status->toBe('completed')
         ->attachment_id->toBe($attachment->id)
         ->is_active->toBeNull();
+    expect($post->refresh()->cover_image_id)->toBeNull();
 });
 
 it('optimizes a manually uploaded cover without requiring AI', function (): void {

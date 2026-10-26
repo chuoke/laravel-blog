@@ -15,11 +15,17 @@ class CoverGeneration extends Model
     {
         return [
             'data' => 'array',
+            'post_id' => 'integer',
         ];
     }
 
     public function attachment(): BelongsTo
     {
         return $this->belongsTo(Attachment::class);
+    }
+
+    public function post(): BelongsTo
+    {
+        return $this->belongsTo(Post::class);
     }
 }

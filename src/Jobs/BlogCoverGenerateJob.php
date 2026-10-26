@@ -5,9 +5,12 @@ namespace Chuoke\Blog\Jobs;
 use Chuoke\Blog\Contracts\BlogCoverGenerator;
 use Chuoke\Blog\Events\BlogCoverGenerated;
 use Chuoke\Blog\Events\BlogCoverGenerationFailed;
+use Chuoke\Blog\Facades\Blog;
 use Chuoke\Blog\Models\CoverGeneration;
+use Chuoke\Blog\Models\Post;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -68,18 +71,43 @@ class BlogCoverGenerateJob implements ShouldQueue
             throw $exception;
         }
 
-        $completed = CoverGeneration::query()
-            ->whereKey($this->coverGenerationId)
-            ->whereIn('status', ['processing', 'failed'])
-            ->update([
+        [$completed, $updatedPost] = DB::transaction(function () use ($coverGeneration, $attachment): array {
+            $result = [
                 'status' => 'completed',
                 'is_active' => null,
                 'attachment_id' => $attachment->getKey(),
                 'data' => null,
                 'failure_reason' => null,
-            ]);
+            ];
 
-        if ($completed !== 0) {
+            $completedActive = CoverGeneration::query()
+                ->whereKey($this->coverGenerationId)
+                ->where('is_active', true)
+                ->where('status', 'processing')
+                ->update($result);
+
+            if ($completedActive !== 0) {
+                $updatedPost = $coverGeneration->post_id === null ? 0 : Post::query()
+                    ->whereKey($coverGeneration->post_id)
+                    ->whereNull('cover_image_id')
+                    ->update(['cover_image_id' => $attachment->getKey()]);
+
+                return [true, $updatedPost !== 0];
+            }
+
+            $completedLate = CoverGeneration::query()
+                ->whereKey($this->coverGenerationId)
+                ->where('status', 'failed')
+                ->update($result);
+
+            return [$completedLate !== 0, false];
+        });
+
+        if ($updatedPost) {
+            Blog::forgetFrontCache();
+        }
+
+        if ($completed) {
             try {
                 event(new BlogCoverGenerated($coverGeneration->refresh()));
             } catch (Throwable $exception) {

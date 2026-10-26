@@ -101,13 +101,9 @@
                         <p class="text-xs text-base-content/60 font-medium">{{ t('blogAdmin.posts.uploadCover') }}</p>
                     </div>
                     
-                    <div v-if="uploadingCover || coverGenerationId !== null" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
-                        <span class="loading loading-spinner loading-xs"></span> {{ t(uploadingCover ? 'blogAdmin.ai.coverOptimizing' : 'blogAdmin.ai.coverGenerating') }}
+                    <div v-if="uploadingCover" class="text-xs text-primary font-medium text-center flex items-center justify-center gap-2">
+                        <span class="loading loading-spinner loading-xs"></span> {{ t('blogAdmin.ai.coverOptimizing') }}
                     </div>
-                    <button v-if="aiEnabled" type="button" class="btn btn-ghost btn-sm mt-3 w-full" :disabled="coverHttp.processing || coverGenerationId !== null" @click="generateCover">
-                        <span v-if="coverHttp.processing" class="loading loading-spinner loading-xs"></span>
-                        {{ coverHttp.processing ? t('blogAdmin.ai.generating') : t('blogAdmin.ai.generateCover') }}
-                    </button>
                 </div>
 
                 <div v-if="aiEnabled" class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
@@ -185,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, useForm, useHttp } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import Layout from '../Layout.vue';
@@ -203,12 +199,6 @@ import { useBlogRoutes } from '../../admin-routes';
 type AttachmentResponse = {
     id: number;
     url: string;
-};
-
-type CoverGenerationStatus = {
-    status: 'pending' | 'processing' | 'completed' | 'failed';
-    attachment: AttachmentResponse | null;
-    reason: 'timeout' | 'rejected' | 'unavailable' | 'queue_timeout' | null;
 };
 
 type ReviewResult = {
@@ -251,12 +241,8 @@ const uploadHttp = useHttp({
 const coverUploadHttp = useHttp({ file: null as File | null });
 const summaryHttp = useHttp({ title: '', content: '', language: '' });
 const slugHttp = useHttp({ title: '', content: '', language: '' });
-const coverHttp = useHttp({ title: '', content: '', language: '' });
-const coverStatusHttp = useHttp({});
 const reviewHttp = useHttp({ title: '', content: '', language: '' });
 const reviewResult = ref<ReviewResult | null>(null);
-const coverGenerationId = ref<number | null>(null);
-let coverPollingTimer: ReturnType<typeof setInterval> | null = null;
 
 // Simple dark mode detection for the editor theme
 const editorTheme = computed(() => {
@@ -339,68 +325,6 @@ const generateSlug = async (): Promise<void> => {
         alert(t('blogAdmin.ai.slugFailed'));
     }
 };
-
-const generateCover = async (): Promise<void> => {
-    fillAiContent(coverHttp);
-
-    try {
-        const generation = await coverHttp.post(adminUrl('ai/cover')) as { id: number };
-
-        if (!Number.isInteger(generation.id) || generation.id <= 0) {
-            throw new Error('Invalid cover generation ID.');
-        }
-
-        coverGenerationId.value = generation.id;
-        startCoverPolling();
-    } catch {
-        alert(t('blogAdmin.ai.coverFailed'));
-    }
-};
-
-const stopCoverPolling = (): void => {
-    if (coverPollingTimer !== null) {
-        clearInterval(coverPollingTimer);
-        coverPollingTimer = null;
-    }
-};
-
-const pollCoverGeneration = async (): Promise<void> => {
-    if (!Number.isInteger(coverGenerationId.value) || coverGenerationId.value <= 0) {
-        coverGenerationId.value = null;
-        stopCoverPolling();
-
-        return;
-    }
-
-    try {
-        const generation = await coverStatusHttp.get(adminUrl(`ai/cover/${coverGenerationId.value}`)) as CoverGenerationStatus;
-
-        if (generation.status === 'completed' && generation.attachment) {
-            form.cover_image_id = generation.attachment.id;
-            coverImageUrl.value = generation.attachment.url;
-            coverGenerationId.value = null;
-            stopCoverPolling();
-        }
-
-        if (generation.status === 'failed') {
-            coverGenerationId.value = null;
-            stopCoverPolling();
-            alert(generation.reason
-                ? `${t('blogAdmin.ai.coverFailed')}\n${t(`blogAdmin.ai.coverFailureReasons.${generation.reason}`)}`
-                : t('blogAdmin.ai.coverFailed'));
-        }
-    } catch {
-        return;
-    }
-};
-
-const startCoverPolling = (): void => {
-    stopCoverPolling();
-    void pollCoverGeneration();
-    coverPollingTimer = setInterval(() => void pollCoverGeneration(), 3000);
-};
-
-onUnmounted(stopCoverPolling);
 
 const reviewContent = async (): Promise<void> => {
     fillAiContent(reviewHttp);

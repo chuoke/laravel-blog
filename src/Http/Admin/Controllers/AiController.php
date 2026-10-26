@@ -16,6 +16,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class AiController extends Controller
@@ -61,18 +62,51 @@ class AiController extends Controller
 
     public function cover(BlogAiContentRequest $request): JsonResponse
     {
+        $validated = $request->validate([
+            'post_id' => ['required', 'integer', Rule::exists('blog_posts', 'id')->whereNull('deleted_at')],
+            'retry' => ['sometimes', 'boolean'],
+        ]);
+
         try {
             BlogAi::ensureAvailable();
 
             $data = $request->contentData();
-            $requestHash = hash('sha256', json_encode($data));
+            $postId = (int) $validated['post_id'];
             $coverGeneration = CoverGeneration::query()
-                ->where('user_id', $request->user()->getKey())
+                ->where('post_id', $postId)
                 ->where('is_active', true)
-                ->latest('id')
                 ->first();
 
-            if ($coverGeneration !== null && $coverGeneration->request_hash !== $requestHash) {
+            if ($coverGeneration !== null) {
+                $staleAt = now()->subSeconds((int) config('blog.ai.cover.retry_after', 3600));
+                $stale = $coverGeneration->updated_at->lte($staleAt);
+                $retryPending = ($validated['retry'] ?? false)
+                    && $coverGeneration->status === 'pending'
+                    && $coverGeneration->user_id === (string) $request->user()->getKey();
+
+                if ($stale || $retryPending) {
+                    $expired = CoverGeneration::query()
+                        ->whereKey($coverGeneration)
+                        ->where('is_active', true)
+                        ->where('status', $coverGeneration->status)
+                        ->when($stale, fn ($query) => $query->where('updated_at', '<=', $staleAt))
+                        ->update([
+                            'status' => 'failed',
+                            'is_active' => null,
+                            'data' => null,
+                            'failure_reason' => $stale
+                                ? ($coverGeneration->status === 'processing' ? 'timeout' : 'queue_timeout')
+                                : null,
+                        ]);
+
+                    $coverGeneration = $expired ? null : CoverGeneration::query()
+                        ->where('post_id', $postId)
+                        ->where('is_active', true)
+                        ->first();
+                }
+            }
+
+            if ($coverGeneration !== null && $coverGeneration->user_id !== (string) $request->user()->getKey()) {
                 return response()->json(['message' => 'A blog cover is already being generated.'], 409);
             }
 
@@ -82,18 +116,18 @@ class AiController extends Controller
                 try {
                     $coverGeneration = CoverGeneration::query()->create([
                         'user_id' => $request->user()->getKey(),
-                        'request_hash' => $requestHash,
+                        'post_id' => $postId,
                         'status' => 'pending',
                         'data' => $data,
                     ]);
                     $shouldDispatch = true;
                 } catch (UniqueConstraintViolationException) {
                     $coverGeneration = CoverGeneration::query()
-                        ->where('user_id', $request->user()->getKey())
+                        ->where('post_id', $postId)
                         ->where('is_active', true)
                         ->firstOrFail();
 
-                    if ($coverGeneration->request_hash !== $requestHash) {
+                    if ($coverGeneration->user_id !== (string) $request->user()->getKey()) {
                         return response()->json(['message' => 'A blog cover is already being generated.'], 409);
                     }
                 }
@@ -120,6 +154,19 @@ class AiController extends Controller
     public function coverStatus(Request $request, CoverGeneration $coverGeneration): JsonResponse
     {
         abort_unless($coverGeneration->user_id === (string) $request->user()->getKey(), 404);
+
+        CoverGeneration::query()
+            ->whereKey($coverGeneration)
+            ->where('is_active', true)
+            ->whereIn('status', ['pending', 'processing'])
+            ->where('updated_at', '<=', now()->subSeconds((int) config('blog.ai.cover.retry_after', 3600)))
+            ->update([
+                'status' => 'failed',
+                'is_active' => null,
+                'data' => null,
+                'failure_reason' => $coverGeneration->status === 'processing' ? 'timeout' : 'queue_timeout',
+            ]);
+        $coverGeneration->refresh();
 
         return response()->json([
             'status' => $coverGeneration->status,
