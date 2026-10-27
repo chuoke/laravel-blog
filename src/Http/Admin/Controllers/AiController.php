@@ -12,6 +12,7 @@ use Chuoke\Blog\Exceptions\BlogAiUnavailable;
 use Chuoke\Blog\Http\Admin\Requests\BlogAiContentRequest;
 use Chuoke\Blog\Models\CoverGeneration;
 use Chuoke\Blog\Models\Post;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -82,6 +83,8 @@ class AiController extends Controller
                 'id' => $coverGeneration->id,
                 'status' => $coverGeneration->status,
             ], 202);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Post not found.'], 404);
         } catch (BlogAiUnavailable $e) {
             return response()->json(['message' => $e->getMessage()], 503);
         } catch (Throwable $e) {

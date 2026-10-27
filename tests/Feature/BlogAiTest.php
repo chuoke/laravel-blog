@@ -5,8 +5,10 @@ use Chuoke\Blog\Actions\BlogContentReview;
 use Chuoke\Blog\Actions\BlogContentTranslate;
 use Chuoke\Blog\Actions\BlogCoverAttachmentStore;
 use Chuoke\Blog\Actions\BlogCoverGenerate;
+use Chuoke\Blog\Actions\BlogCoverGenerationStart;
 use Chuoke\Blog\Actions\BlogSlugGenerate;
 use Chuoke\Blog\Actions\BlogSummaryGenerate;
+use Chuoke\Blog\Actions\PostDelete;
 use Chuoke\Blog\Actions\PostCreate;
 use Chuoke\Blog\Ai\BlogContentReviewAgent;
 use Chuoke\Blog\Ai\BlogContentTranslateAgent;
@@ -24,6 +26,7 @@ use Chuoke\Blog\Jobs\BlogCoverGenerateJob;
 use Chuoke\Blog\Models\Attachment;
 use Chuoke\Blog\Models\CoverGeneration;
 use Chuoke\Blog\Models\Post;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -370,6 +373,27 @@ it('requires a saved post before generating a cover', function (): void {
     Queue::assertNothingPushed();
 });
 
+it('does not start a cover generation for a post deleted after validation', function (): void {
+    config(['blog.author_model' => User::class]);
+    Queue::fake();
+
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Deleted before cover start',
+        content: 'Article content',
+        authorId: 1,
+    ));
+    $post->delete();
+
+    expect(fn () => app(BlogCoverGenerationStart::class)->execute(
+        $post->id,
+        '1',
+        ['title' => $post->title, 'content' => $post->content, 'language' => $post->language],
+        false,
+    ))->toThrow(ModelNotFoundException::class);
+
+    Queue::assertNothingPushed();
+});
+
 it('retries a pending cover generation and releases its old task', function (): void {
     config(['blog.author_model' => User::class, 'blog.ai.image_middleware' => []]);
     Queue::fake();
@@ -471,6 +495,90 @@ it('expires an unstarted cover generation and permits a new request', function (
     ]);
     $response->assertAccepted();
     expect($response->json('id'))->not->toBe($coverGeneration->id);
+});
+
+it('cancels queued cover generations when an article is deleted', function (): void {
+    config(['blog.author_model' => User::class]);
+
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Post to delete',
+        content: 'Article content',
+        authorId: 1,
+    ));
+    $translation = (new PostCreate())->execute(new PostCreateData(
+        title: 'Translation to delete',
+        content: 'Translated content',
+        authorId: 1,
+        language: 'zh',
+        articleId: $post->article_id,
+    ));
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'post_id' => $post->id,
+        'data' => ['title' => $post->title, 'content' => $post->content, 'language' => $post->language],
+    ]);
+    $translationGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'post_id' => $translation->id,
+        'data' => ['title' => $translation->title, 'content' => $translation->content, 'language' => $translation->language],
+    ]);
+
+    (new PostDelete())->execute($post);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('failed')
+        ->is_active->toBeNull()
+        ->data->toBeNull();
+    expect($translationGeneration->refresh())
+        ->status->toBe('failed')
+        ->is_active->toBeNull()
+        ->data->toBeNull();
+
+    $generator = new class implements BlogCoverGenerator
+    {
+        public function execute(array $data): Attachment
+        {
+            throw new LogicException('A deleted post must not generate a cover.');
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+    (new BlogCoverGenerateJob($translationGeneration->id))->handle($generator);
+});
+
+it('does not complete a cover generation when its post is deleted during generation', function (): void {
+    config(['blog.author_model' => User::class]);
+
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Post deleted during generation',
+        content: 'Article content',
+        authorId: 1,
+    ));
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'post_id' => $post->id,
+        'data' => ['title' => $post->title, 'content' => $post->content, 'language' => $post->language],
+    ]);
+    $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
+    $generator = new class($post, $attachment) implements BlogCoverGenerator
+    {
+        public function __construct(private Post $post, private Attachment $attachment) {}
+
+        public function execute(array $data): Attachment
+        {
+            (new PostDelete())->execute($this->post);
+            $this->post->forceDelete();
+
+            return $this->attachment;
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('failed')
+        ->is_active->toBeNull()
+        ->attachment_id->toBe($attachment->id);
 });
 
 it('stores a generated attachment when a queued cover job completes', function (): void {

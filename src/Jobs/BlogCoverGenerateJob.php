@@ -72,6 +72,10 @@ class BlogCoverGenerateJob implements ShouldQueue
         }
 
         [$completed, $updatedPost] = DB::transaction(function () use ($coverGeneration, $attachment): array {
+            if ($coverGeneration->post_id !== null) {
+                Post::query()->whereKey($coverGeneration->post_id)->lockForUpdate()->first();
+            }
+
             $result = [
                 'status' => 'completed',
                 'is_active' => null,
@@ -98,7 +102,16 @@ class BlogCoverGenerateJob implements ShouldQueue
             $completedLate = CoverGeneration::query()
                 ->whereKey($this->coverGenerationId)
                 ->where('status', 'failed')
+                ->whereHas('post')
                 ->update($result);
+
+            if ($completedLate === 0) {
+                CoverGeneration::query()
+                    ->whereKey($this->coverGenerationId)
+                    ->where('status', 'failed')
+                    ->whereNull('attachment_id')
+                    ->update(['attachment_id' => $attachment->getKey()]);
+            }
 
             return [$completedLate !== 0, false];
         });
