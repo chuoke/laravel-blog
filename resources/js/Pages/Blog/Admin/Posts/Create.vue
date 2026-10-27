@@ -66,6 +66,57 @@
 
             <!-- Settings Sidebar (Right) -->
             <div class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
+                <!-- Organization Card -->
+                <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
+                    <h3 class="text-sm font-bold text-base-content mb-5 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        {{ t('blogAdmin.posts.organization') }}
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.posts.category') }}</label>
+                            <select v-model="form.category_id" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
+                                <option :value="null">{{ t('blogAdmin.posts.uncategorized') }}</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.name[taxonomyLocale] || Object.values(category.name)[0] }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.common.language') }}</label>
+                            <select v-model="form.language" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
+                                <option v-for="(label, code) in locales" :key="code" :value="code">{{ label }}</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.navigation.tags') }}</label>
+                            <div class="rounded-lg bg-base-200 p-2">
+                                <div @focusout="closeTagPicker">
+                                    <input v-model="tagSearch" type="search" :placeholder="t('blogAdmin.posts.searchTags')" @focus="tagPickerOpen = true" class="w-full rounded-md border-0 bg-base-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary" />
+                                    <div v-if="tagPickerOpen" class="mt-1 max-h-48 w-full overflow-y-auto rounded-md bg-base-100 p-1 shadow-sm ring-1 ring-base-300">
+                                        <button v-for="tag in filteredTags" :key="tag.id" type="button" @click="toggleTag(tag.id)" class="flex w-full items-center justify-between rounded px-2.5 py-2 text-left text-sm transition-colors hover:bg-base-200 active:scale-[0.98]">
+                                            <span>{{ tagLabel(tag) }}</span>
+                                            <svg v-if="form.tag_ids.includes(tag.id)" class="size-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 4 4L19 6" /></svg>
+                                        </button>
+                                        <p v-if="filteredTags.length === 0" class="px-2.5 py-3 text-sm text-base-content/60">{{ t('blogAdmin.posts.noMatchingTags') }}</p>
+                                    </div>
+                                </div>
+                                <div v-if="selectedTags.length" class="mt-2 flex flex-wrap gap-1.5">
+                                    <span v-for="tag in selectedTags" :key="tag.id" class="inline-flex items-center gap-1 rounded-md bg-base-100 px-2 py-1 text-xs font-medium shadow-sm">
+                                        {{ tagLabel(tag) }}
+                                        <button type="button" @click="toggleTag(tag.id)" :aria-label="`${t('blogAdmin.posts.remove')} ${tagLabel(tag)}`" class="rounded text-base-content/50 transition-colors hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Summary Card -->
                 <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
                     <div class="mb-2 flex items-center justify-between gap-3">
@@ -125,56 +176,6 @@
                     </div>
                 </div>
 
-                <!-- Organization Card -->
-                <div class="bg-base-100 rounded-2xl shadow-sm border border-base-300 p-5">
-                    <h3 class="text-sm font-bold text-base-content mb-5 flex items-center">
-                        <svg class="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        {{ t('blogAdmin.posts.organization') }}
-                    </h3>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.posts.category') }}</label>
-                            <select v-model="form.category_id" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
-                                <option :value="null">{{ t('blogAdmin.posts.uncategorized') }}</option>
-                                <option v-for="category in categories" :key="category.id" :value="category.id">
-                                    {{ category.name[taxonomyLocale] || Object.values(category.name)[0] }}
-                                </option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.common.language') }}</label>
-                            <select v-model="form.language" class="w-full bg-base-200 border-0 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:bg-base-100 transition-all">
-                                <option v-for="(label, code) in locales" :key="code" :value="code">{{ label }}</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-base-content/70 mb-1.5 uppercase tracking-wider">{{ t('blogAdmin.navigation.tags') }}</label>
-                            <div class="rounded-lg bg-base-200 p-2">
-                                <div v-if="selectedTags.length" class="mb-2 flex flex-wrap gap-1.5">
-                                    <span v-for="tag in selectedTags" :key="tag.id" class="inline-flex items-center gap-1 rounded-md bg-base-100 px-2 py-1 text-xs font-medium shadow-sm">
-                                        {{ tagLabel(tag) }}
-                                        <button type="button" @click="toggleTag(tag.id)" :aria-label="`${t('blogAdmin.posts.remove')} ${tagLabel(tag)}`" class="rounded text-base-content/50 transition-colors hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                                            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg>
-                                        </button>
-                                    </span>
-                                </div>
-                                <div class="relative" @focusout="closeTagPicker">
-                                    <input v-model="tagSearch" type="search" :placeholder="t('blogAdmin.posts.searchTags')" @focus="tagPickerOpen = true" class="w-full rounded-md border-0 bg-base-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary" />
-                                    <div v-if="tagPickerOpen" class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md bg-base-100 p-1 shadow-lg ring-1 ring-base-300">
-                                        <button v-for="tag in filteredTags" :key="tag.id" type="button" @click="toggleTag(tag.id)" class="flex w-full items-center justify-between rounded px-2.5 py-2 text-left text-sm transition-colors hover:bg-base-200 active:scale-[0.98]">
-                                            <span>{{ tagLabel(tag) }}</span>
-                                            <svg v-if="form.tag_ids.includes(tag.id)" class="size-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 4 4L19 6" /></svg>
-                                        </button>
-                                        <p v-if="filteredTags.length === 0" class="px-2.5 py-3 text-sm text-base-content/60">{{ t('blogAdmin.posts.noMatchingTags') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
