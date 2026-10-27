@@ -56,6 +56,21 @@ class BlogCoverGenerateJob implements ShouldQueue
             return;
         }
 
+        if ($coverGeneration->post === null) {
+            CoverGeneration::query()
+                ->whereKey($this->coverGenerationId)
+                ->where('is_active', true)
+                ->where('status', 'processing')
+                ->update([
+                    'status' => 'failed',
+                    'is_active' => null,
+                    'data' => null,
+                    'failure_reason' => null,
+                ]);
+
+            return;
+        }
+
         try {
             $attachment = $generate->execute([
                 ...($coverGeneration->data ?? []),

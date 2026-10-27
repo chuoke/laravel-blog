@@ -546,6 +546,37 @@ it('cancels queued cover generations when an article is deleted', function (): v
     (new BlogCoverGenerateJob($translationGeneration->id))->handle($generator);
 });
 
+it('does not run an orphaned cover generation left by a deleted post', function (): void {
+    config(['blog.author_model' => User::class]);
+
+    $post = (new PostCreate())->execute(new PostCreateData(
+        title: 'Previously deleted post',
+        content: 'Article content',
+        authorId: 1,
+    ));
+    $coverGeneration = CoverGeneration::create([
+        'user_id' => '1',
+        'post_id' => $post->id,
+        'data' => ['title' => $post->title, 'content' => $post->content, 'language' => $post->language],
+    ]);
+    $post->delete();
+
+    $generator = new class implements BlogCoverGenerator
+    {
+        public function execute(array $data): Attachment
+        {
+            throw new LogicException('A deleted post must not generate a cover.');
+        }
+    };
+
+    (new BlogCoverGenerateJob($coverGeneration->id))->handle($generator);
+
+    expect($coverGeneration->refresh())
+        ->status->toBe('failed')
+        ->is_active->toBeNull()
+        ->data->toBeNull();
+});
+
 it('does not complete a cover generation when its post is deleted during generation', function (): void {
     config(['blog.author_model' => User::class]);
 
@@ -584,9 +615,11 @@ it('does not complete a cover generation when its post is deleted during generat
 it('stores a generated attachment when a queued cover job completes', function (): void {
     Event::fake();
 
+    $post = (new PostCreate())->execute(new PostCreateData(title: 'Post with queued cover', content: 'Article content', authorId: 1));
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
+        'post_id' => $post->id,
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
@@ -632,11 +665,13 @@ it('stores a generated attachment when a queued cover job completes', function (
 it('keeps a long-running cover generation available for status polling', function (): void {
     config(['blog.author_model' => User::class]);
 
+    $post = (new PostCreate())->execute(new PostCreateData(title: 'Post with long-running cover', content: 'Article content', authorId: 1));
     $user = new User();
     $user->forceFill(['id' => 1])->exists = true;
 
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
+        'post_id' => $post->id,
         'data' => ['title' => 'Queued cover', 'content' => 'Draft content', 'language' => 'en'],
     ]);
     $coverGeneration->update(['created_at' => now()->subMinutes(11)]);
@@ -658,8 +693,10 @@ it('marks a queued cover generation as failed after the job fails', function ():
 
     config(['blog.author_model' => User::class]);
 
+    $post = (new PostCreate())->execute(new PostCreateData(title: 'Post with failed cover', content: 'Article content', authorId: 1));
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
+        'post_id' => $post->id,
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
 
@@ -700,9 +737,11 @@ it('marks a queued cover generation as failed after the job fails', function ():
 it('reclaims a stale cover generation after its worker stops', function (): void {
     Event::fake();
 
+    $post = (new PostCreate())->execute(new PostCreateData(title: 'Post with stale cover', content: 'Article content', authorId: 1));
     $attachment = Attachment::create(['path' => 'cover.webp', 'file_name' => 'cover.webp']);
     $coverGeneration = CoverGeneration::create([
         'user_id' => '1',
+        'post_id' => $post->id,
         'status' => 'processing',
         'data' => ['title' => 'Queued cover', 'content' => null, 'language' => 'en'],
     ]);
